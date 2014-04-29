@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<languages>
+    
+    <language name="en_UK">
+        <string key="Hello World" value="Hello World"/>
+    </language>
+    
+    <language name="es_ES">
+        <string key="Hello World" value="Muchas Gracias"/>
+    </language>
+    
+    <language name="el_GR">
+        <string key="Hello World" value="γεια σας κόσμο"/>
+        <!-- γεια σας κόσμο  -->
+    </language>
+    
+    <language name="zh_CN">
+        <string key="Hello World" value="Muchas Gracias"/>
+        <!-- 你好世界 -->
+    </language>
+    
+    
+    
+
+</languages>

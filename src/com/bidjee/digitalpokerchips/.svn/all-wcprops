@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/bidjee/!svn/ver/11/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips
+END
+PlayerNetwork.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/bidjee/!svn/ver/60/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/PlayerNetwork.java
+END
+WifiBroadcastReceiver.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/bidjee/!svn/ver/5/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/WifiBroadcastReceiver.java
+END
+AndroidPersistScreen.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/bidjee/!svn/ver/11/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/AndroidPersistScreen.java
+END
+PlayerNetworkService.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/bidjee/!svn/ver/60/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/PlayerNetworkService.java
+END
+HostNetwork.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/bidjee/!svn/ver/60/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/HostNetwork.java
+END
+myApplication.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/bidjee/!svn/ver/41/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/myApplication.java
+END
+PlayerConnection.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svn/bidjee/!svn/ver/54/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/PlayerConnection.java
+END
+HostNetworkService.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/bidjee/!svn/ver/60/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/HostNetworkService.java
+END
+DPCActivity.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/bidjee/!svn/ver/54/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/DPCActivity.java
+END
+AndroidTextFactory.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/bidjee/!svn/ver/54/trunk/DigitalPokerChipsAnd/src/com/bidjee/digitalpokerchips/AndroidTextFactory.java
+END
