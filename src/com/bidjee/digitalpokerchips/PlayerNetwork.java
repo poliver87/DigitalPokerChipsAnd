@@ -1,7 +1,6 @@
 package com.bidjee.digitalpokerchips;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -19,6 +18,7 @@ import com.bidjee.digitalpokerchips.m.ChipCase;
 import com.bidjee.digitalpokerchips.m.ChipStack;
 import com.bidjee.digitalpokerchips.m.DiscoveredTable;
 import com.bidjee.digitalpokerchips.m.PlayerEntry;
+import com.bidjee.util.Logger;
 
 public class PlayerNetwork implements IPlayerNetwork {
 	
@@ -88,7 +88,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	////////////////////////////// Lifecycle Events //////////////////////////////
 	
 	public void onSaveInstanceState(Bundle outState_) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onSaveInstanceState()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onSaveInstanceState()");
 		outState_.putBoolean("tableConnected",tableConnected);
 		outState_.putBoolean("doingHostDiscover",doingHostDiscover);
 		outState_.putByteArray("hostBytes",hostBytes);
@@ -97,7 +97,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void onRestoreInstanceState(Bundle savedInstanceState) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onRestoreInstanceState()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onRestoreInstanceState()");
 		tableConnected=savedInstanceState.getBoolean("tableConnected");
 		doingHostDiscover=savedInstanceState.getBoolean("doingHostDiscover");
 		hostBytes=savedInstanceState.getByteArray("hostBytes");
@@ -106,7 +106,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void onStart(Context c_) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onStart()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onStart()");
 		Intent playerConnectServiceIntent = new Intent(c_,PlayerNetworkService.class);
 		c_.bindService(playerConnectServiceIntent,networkServiceConnection,Context.BIND_AUTO_CREATE);
 		if (tableConnected) {
@@ -115,7 +115,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void onStop(Context c_) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onStop()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onStop()");
 		if (connectServiceBound) {
 			playerNetworkService.stopDiscover();
 			playerNetworkService.stopListen();
@@ -130,7 +130,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	
 	private ServiceConnection networkServiceConnection=new ServiceConnection() {
     	public void onServiceConnected(ComponentName className,IBinder service) {
-    		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onServiceConnected()");
+    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onServiceConnected()");
     		PlayerNetworkServiceBinder binder=(PlayerNetworkServiceBinder)service;
     		playerNetworkService=binder.getService();
     		connectServiceBound=true;
@@ -144,7 +144,7 @@ public class PlayerNetwork implements IPlayerNetwork {
     		}
     	}    	
     	public void onServiceDisconnected(ComponentName arg0) {
-    		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onServiceDisconnected()");
+    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onServiceDisconnected()");
     		connectServiceBound=false;
     	}
     };
@@ -168,7 +168,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	@Override
 	public void requestInvitation(byte[] hostBytes) {
 		if (connectServiceBound) {
-			Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - requestInvitation()");
+			Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - requestInvitation()");
 			String playerAnnounceStr=PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN+playerName+PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE;
     		playerNetworkService.requestInvitation(hostBytes,playerAnnounceStr);
     	}
@@ -176,13 +176,13 @@ public class PlayerNetwork implements IPlayerNetwork {
 	
 	////////////////////////////// Thread Spawners //////////////////////////////
 	public void spawnDiscover() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnDiscover()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnDiscover()");
 		String playerAnnounceStr=PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN+playerName+PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE;
 		playerNetworkService.startDiscover(playerAnnounceStr);
 	}
 	
 	public void spawnConnect(byte[] hostBytes,String playerName,int azimuth,int[] chipNumbers) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnConnect()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnConnect()");
 		String playerSetupString=PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN+playerName+PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE;
 		playerSetupString+=PlayerNetwork.TAG_AZIMUTH_OPEN+azimuth+PlayerNetwork.TAG_AZIMUTH_CLOSE;
 		playerSetupString+=PlayerNetwork.TAG_NUM_A_OPEN+chipNumbers[ChipCase.CHIP_A]+PlayerNetwork.TAG_NUM_A_CLOSE;
@@ -192,7 +192,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void spawnReconnect() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnReconnect()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnReconnect()");
 		String reconnectMsg=HostNetwork.TAG_GAME_KEY_OPEN+game_key+HostNetwork.TAG_GAME_KEY_CLOSE;
 		playerNetworkService.startReconnect(hostBytes,reconnectMsg);
 	}
@@ -247,7 +247,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void notifyReconnected() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG,"PlayerNetwork - notifyReconnected()");
+		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG,"PlayerNetwork - notifyReconnected()");
 		player.notifyReconnected();
 		doingReconnect=false;
 		playerNetworkService.sendToHost(TAG_PLAYER_NAME_OPEN+playerName+TAG_PLAYER_NAME_CLOSE);
@@ -369,12 +369,12 @@ public class PlayerNetwork implements IPlayerNetwork {
 	
 	private void resendLast() {
 		playerNetworkService.sendToHost(lastReply);
-		Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetwork - resendLast() - Resending "+lastReply);
+		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetwork - resendLast() - Resending "+lastReply);
 	}
 
 	public void parseGameMessage(String msg) {
 		boolean resendReply=false;
-		Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetwork - parseGameMessage() - "+msg);
+		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetwork - parseGameMessage() - "+msg);
 		if (msg.contains(HostNetwork.TAG_RESEND_OPEN)&&msg.contains(HostNetwork.TAG_RESEND_CLOSE)) {
 			// strip off re-send header
 			int startIndex = msg.indexOf(HostNetwork.TAG_RESEND_OPEN) + HostNetwork.TAG_RESEND_OPEN.length();

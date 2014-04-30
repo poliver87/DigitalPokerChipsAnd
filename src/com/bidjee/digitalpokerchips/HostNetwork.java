@@ -19,6 +19,7 @@ import com.bidjee.digitalpokerchips.c.Table;
 import com.bidjee.digitalpokerchips.i.IHostNetwork;
 import com.bidjee.digitalpokerchips.m.ChipCase;
 import com.bidjee.digitalpokerchips.m.Player;
+import com.bidjee.util.Logger;
 
 public class HostNetwork implements IHostNetwork {
 	
@@ -116,13 +117,13 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void onStart(Context c) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onStart()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onStart()");
 		Intent hostConnectServiceIntent=new Intent(c,HostNetworkService.class);
 		c.bindService(hostConnectServiceIntent,networkServiceConnection,Context.BIND_AUTO_CREATE);
 	}
 	
 	public void onStop(Context c) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onStop()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onStop()");
 		if (connectServiceBound) {
 			hostNetworkService.stopAnnounce();
 			hostNetworkService.stopAccept();
@@ -136,7 +137,7 @@ public class HostNetwork implements IHostNetwork {
 	private ServiceConnection networkServiceConnection =
     		new ServiceConnection() {    	
     	public void onServiceConnected(ComponentName className, IBinder service) {
-    		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onServiceConnected()");
+    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onServiceConnected()");
     		HostNetworkServiceBinder binder = (HostNetworkServiceBinder)service;
     		hostNetworkService = binder.getService();
     		connectServiceBound=true;
@@ -152,7 +153,7 @@ public class HostNetwork implements IHostNetwork {
     		}
     	}    	
     	public void onServiceDisconnected(ComponentName arg0) {
-    		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onServiceDisconnected()");
+    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onServiceDisconnected()");
     		connectServiceBound=false;
     	}
     };
@@ -176,7 +177,7 @@ public class HostNetwork implements IHostNetwork {
     
 	@Override
 	public void startLobby(boolean loadedGame,ArrayList<String> playerNames) {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - startLobby("+loadedGame+")");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - startLobby("+loadedGame+")");
 		this.loadedGame=loadedGame;
 		this.playerNames=playerNames;
 		startAnnounce();
@@ -185,7 +186,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void stopLobby() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - stopLobby()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - stopLobby()");
 		loadedGame=false;
 		playerNames=null;
 		stopAnnounce();
@@ -351,7 +352,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 
     public void parsePlayerMessage(final String hostName,final String msg) {
-    	Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetwork - ParsePlayerMessage() - "+msg);
+    	Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetwork - ParsePlayerMessage() - "+msg);
 		if (msg.contains(PlayerNetwork.TAG_PLAYER_NAME_OPEN)&&msg.contains(PlayerNetwork.TAG_PLAYER_NAME_CLOSE)) {
 			int startIndex = msg.indexOf(PlayerNetwork.TAG_PLAYER_NAME_OPEN) + PlayerNetwork.TAG_PLAYER_NAME_OPEN.length();
 			int endIndex = msg.indexOf(PlayerNetwork.TAG_PLAYER_NAME_CLOSE);
@@ -436,7 +437,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	private void resend(String hostName) {
 		hostNetworkService.sendToPlayer(TAG_RESEND_OPEN+replyPending.get(hostName)+TAG_RESEND_CLOSE,hostName);
-		Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetwork - resending: "+replyPending.get(hostName));
+		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetwork - resending: "+replyPending.get(hostName));
 	}
 	
 	public boolean requestGamePermission(String rxMsg) {
@@ -523,7 +524,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void spawnAnnounce() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnAnnounce()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnAnnounce()");
 		String hostAnnounceStr=HostNetwork.TAG_TABLE_NAME_OPEN+tableName+HostNetwork.TAG_TABLE_NAME_CLOSE;
 		if (loadedGame) {
 			hostAnnounceStr+=HostNetwork.TAG_LOADED_GAME;
@@ -535,7 +536,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void spawnAccept() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnAccept()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnAccept()");
 		String tableNameMsg=HostNetwork.TAG_TABLE_NAME_OPEN+tableName+HostNetwork.TAG_TABLE_NAME_CLOSE;
 		String gameKeyMsg=HostNetwork.TAG_GAME_KEY_OPEN+game_key+HostNetwork.TAG_GAME_KEY_CLOSE;
 		String failedStr=HostNetwork.TAG_CONNECT_UNSUCCESSFUL;
@@ -543,7 +544,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void spawnReconnect() {
-		Gdx.app.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnReconnect()");
+		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnReconnect()");
 		String tableNameStr=TAG_RECONNECT_TABLE_NAME_OPEN+tableName+TAG_RECONNECT_TABLE_NAME_CLOSE;
 		String ackStr=TAG_RECONNECT_SUCCESSFUL;
 		String failedStr=TAG_RECONNECT_FAILED;
