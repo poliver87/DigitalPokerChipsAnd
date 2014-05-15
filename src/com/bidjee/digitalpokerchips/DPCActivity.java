@@ -29,8 +29,11 @@ import com.bidjee.digitalpokerchips.i.IPlayerNetwork;
 import com.bidjee.digitalpokerchips.i.ITableStore;
 import com.bidjee.digitalpokerchips.i.ITextFactory;
 import com.bidjee.digitalpokerchips.m.ChipCase;
+import com.bidjee.util.Logger;
 
 public class DPCActivity extends AndroidApplication implements IActivity, ITableStore {
+	
+	public static final String LOG_TAG = "DPCActivity";
 	
 	public static final String SAVE_TABLE_NAME_KEY = "SAVE_TABLE_NAME_KEY";
 	public static final String SAVE_TABLE_STATE_KEY = "SAVE_TABLE_STATE_KEY";
@@ -70,7 +73,7 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	@Override
 	public void onStart() {
 		super.onStart();
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onStart()");
+		Logger.log(LOG_TAG,"onStart()");
 		registerReceiver(mWifiBroadcastReceiver, wifiBroadcastFilter);
 		WifiManager wm=(WifiManager)getSystemService(Context.WIFI_SERVICE);
 		mWifiLock=wm.createWifiLock(WifiManager.WIFI_MODE_FULL,"DPC_WIFI_LOCK");
@@ -82,19 +85,19 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	@Override
 	public void onResume() {
 		super.onResume();
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onResume()");
+		Logger.log(LOG_TAG,"onResume()");
 	}
 	
 	@Override
 	public void onPause() {
 		super.onPause();
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onPause()");
+		Logger.log(LOG_TAG,"onPause()");
 	}
 	
 	@Override
 	public void onStop() {
 		super.onStop();
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onStop()");
+		Logger.log(LOG_TAG,"onStop()");
 		this.unregisterReceiver(mWifiBroadcastReceiver);
 		if (mWifiLock.isHeld()) {
 			mWifiLock.release();
@@ -107,19 +110,19 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	@Override
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onSaveInstanceState()");
+		Logger.log(LOG_TAG,"onSaveInstanceState()");
 	}
 	
 	@Override
 	public void onRestoreInstanceState(Bundle savedInstanceState) {
 		super.onRestoreInstanceState(savedInstanceState);
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onRestoreInstanceState()");
+		Logger.log(LOG_TAG,"onRestoreInstanceState()");
 	}
 	
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		Gdx.app.log("DPCLifecycle", "DPCActivity - onDestroy()");
+		Logger.log(LOG_TAG,"onDestroy()");
 		mWifiLock=null;
 		mWifiBroadcastReceiver=null;
 		game=null;
@@ -129,6 +132,7 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	
 	//////////////////// Messages from WifiBroadcastReceiver ////////////////////
 	public void setWifiEnabled(final boolean en) {
+		Logger.log(LOG_TAG,"setWifiEnabled("+en+")");
 		final String ipAddress;
 		if (en) {
 			WifiManager wm=(WifiManager)getSystemService(Context.WIFI_SERVICE);
@@ -172,6 +176,7 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	
     @Override
 	public void launchSettings() {
+    	Logger.log(LOG_TAG,"launchSettings()");
     	Intent intent_=new Intent(Settings.ACTION_WIFI_SETTINGS);
     	intent_.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 		startActivity(intent_);
@@ -182,6 +187,7 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	/////////////// Table Store Methods ///////////////
     @Override
 	public void saveGame(final int saveSlot,final String tableName,String tableState,String gameState) {
+    	Logger.log(LOG_TAG,"saveGame()");
 		Editor savedGameEditor=getSharedPreferences("SAVED_GAME_"+saveSlot,Activity.MODE_PRIVATE).edit();
 		savedGameEditor.putString(SAVE_TABLE_NAME_KEY,tableName);
 		savedGameEditor.putString(SAVE_TABLE_STATE_KEY,tableState);
@@ -199,6 +205,7 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	
 	@Override
 	public String[] getTableNames(int numSlots) {
+		Logger.log(LOG_TAG,"getTableNames()");
 		String[] names=new String[numSlots];
 		for (int i=0;i<numSlots;i++) {
 			int slot=i+1;
@@ -218,8 +225,9 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		SharedPreferences savedGame=getSharedPreferences("SAVED_GAME_"+slot,Activity.MODE_PRIVATE);
 		if (savedGame.contains(SAVE_TABLE_NAME_KEY)) {
 			tableName=savedGame.getString(SAVE_TABLE_NAME_KEY,"");
+			Logger.log(LOG_TAG,"getTableName("+slot+")");
 		} else {
-			Gdx.app.log(DPCGame.DEBUG_LOG_SAVE_LOAD_TAG,"Couldn't load table name in slot "+slot);
+			Logger.log(LOG_TAG,"getTableName("+slot+") not found");
 		}
 		return tableName;
 	}
@@ -230,8 +238,9 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		SharedPreferences savedGame=getSharedPreferences("SAVED_GAME_"+slot,Activity.MODE_PRIVATE);
 		if (savedGame.contains(SAVE_TABLE_STATE_KEY)) {
 			tableState=savedGame.getString(SAVE_TABLE_STATE_KEY,"");
+			Logger.log(LOG_TAG,"getTableState("+slot+")");
 		} else {
-			Gdx.app.log(DPCGame.DEBUG_LOG_SAVE_LOAD_TAG,"Couldn't load table state in slot "+slot);
+			Logger.log(LOG_TAG,"getTableState("+slot+") not found");
 		}
 		return tableState;
 	}
@@ -242,8 +251,9 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		SharedPreferences savedGame=getSharedPreferences("SAVED_GAME_"+slot,Activity.MODE_PRIVATE);
 		if (savedGame.contains(SAVE_GAME_STATE_KEY)) {
 			gameState=savedGame.getString(SAVE_GAME_STATE_KEY,"");
+			Logger.log(LOG_TAG,"getGameState("+slot+")");
 		} else {
-			Gdx.app.log(DPCGame.DEBUG_LOG_SAVE_LOAD_TAG,"Couldn't load game state in slot "+slot);
+			Logger.log(LOG_TAG,"getGameState("+slot+") not found");
 		}
 		return gameState;
 	}

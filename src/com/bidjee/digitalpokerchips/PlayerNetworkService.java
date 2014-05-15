@@ -23,8 +23,11 @@ import android.os.IBinder;
 
 import com.badlogic.gdx.Gdx;
 import com.bidjee.digitalpokerchips.c.DPCGame;
+import com.bidjee.util.Logger;
 
 public class PlayerNetworkService extends Service {
+	
+	public static final String LOG_TAG = "DPCPlayerNetworkService";
 	
 	// Network constants
 	private static final int NEG_PORT_TX = 11111;
@@ -92,6 +95,7 @@ public class PlayerNetworkService extends Service {
 			quads[k]=(byte)((broadcast>>k*8)&0xFF);
 		}
 		broadcastAddress=InetAddress.getByAddress(quads);
+		Logger.log(LOG_TAG,"getBroadcastAddress() = "+broadcastAddress.toString());
     	return broadcastAddress;
     }
 	
@@ -101,6 +105,7 @@ public class PlayerNetworkService extends Service {
 		Thread stopPlayerDiscoverThread=new Thread(new Runnable() {
 			public void run() {
 				synchronized (discoverLock) {
+					Logger.log(LOG_TAG,"stopDiscover()");
 					currentDiscoverThread=null;
 					if (broadcastSocket!=null) {
 						broadcastSocket.close();
@@ -127,7 +132,7 @@ public class PlayerNetworkService extends Service {
 			this.playerAnnounceStr=playerAnnounceStr;
 		}
 		public void run() {
-			Gdx.app.log("DPC","startPlayerDiscover Started");
+			Logger.log(LOG_TAG,"discoverRunnable()");
 			try {
 				// Setup the Datagram Sockets
 				broadcastSocket=new DatagramSocket();
@@ -152,20 +157,20 @@ public class PlayerNetworkService extends Service {
 			    		try {
 			    			// Broadcast player's presence
 			    			broadcastSocket.send(discoverHostPkt);
-			    			Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - discoverRunnable - Sent broadcast");
+			    			Logger.log(LOG_TAG,"discoverRunnable() - sent broadcast");
 							try {
 								// Bug requires that this be set each time
 								hostRespPkt.setLength(hostRespBuf.length);
 								// Wait for a response
 								respSocket.receive(hostRespPkt);
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - discoverRunnable - Broadcast repsonse received");
+								Logger.log(LOG_TAG,"discoverRunnable() - broadcast response received");
 								String rxMsg=new String(hostRespPkt.getData(),0,hostRespPkt.getLength());
 								// When the response is received, check for the right message then notify activity
 								if (rxMsg.contains(HostNetwork.TAG_TABLE_NAME_OPEN)&&rxMsg.contains(HostNetwork.TAG_VAL_C_CLOSE)) {
 									byte[] hostBytes=hostRespPkt.getAddress().getAddress();
 									playerNetwork.notifyTableFound(hostBytes,rxMsg);
 									sleepThread=true;
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - discoverRunnable - Table discovered");
+									Logger.log(LOG_TAG,"discoverRunnable() - table discovered");
 								}
 							} catch (SocketTimeoutException e) {
 								sleepThread=true;
@@ -178,14 +183,14 @@ public class PlayerNetworkService extends Service {
 						}	    		
 		    		} // end while (Thread.currentThread()==currentDiscoverThread)
 				} catch (UnknownHostException e3) {
-					Gdx.app.log("DPC","Couldn't find Broadcast Address");
+					Logger.log(LOG_TAG,"discoverRunnable() - couldn't find broadcast address");
 					e3.printStackTrace();
 				}
 			} catch (SocketException e2) {
 				e2.printStackTrace();
-				Gdx.app.log("DPC","Couldn't open DatagramSockets");
+				Logger.log(LOG_TAG,"discoverRunnable() - couldn't open datagram sockets");
 			}
-    		Gdx.app.log("DPC","startPlayerDiscover Finished");
+			Logger.log(LOG_TAG,"discoverRunnable() - end");
 		}// end run
 	}
 	
@@ -202,7 +207,7 @@ public class PlayerNetworkService extends Service {
 			this.playerAnnounceStr=playerAnnounceStr;
 		}
 		public void run() {
-			Gdx.app.log("DPC","requestInvitationRunnable Started");
+			Logger.log(LOG_TAG,"requestInvitationRunnable()");
 			try {
 				// Setup the Datagram Socket
 				DatagramSocket sendSocket=new DatagramSocket();
@@ -215,18 +220,18 @@ public class PlayerNetworkService extends Service {
 					try {
 		    			// Broadcast player's presence
 						sendSocket.send(discoverHostPkt);
-		    			Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - requestInvitationRunnable - Sent request invitation");
+						Logger.log(LOG_TAG,"requestInvitationRunnable() - sent request");
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				} catch (UnknownHostException e3) {
-					Gdx.app.log("DPC","Couldn't find host address");
+					Logger.log(LOG_TAG,"requestInvitationRunnable() - unknown host");
 					e3.printStackTrace();
 				}
 				sendSocket.close();
 			} catch (SocketException e2) {
 				e2.printStackTrace();
-				Gdx.app.log("DPC","Couldn't open DatagramSockets");
+				Logger.log(LOG_TAG,"requestInvitationRunnable() - couldn't open datagram sockets");
 			}
 		}// end run
 	}
@@ -234,6 +239,8 @@ public class PlayerNetworkService extends Service {
 	public void playerConnect(final byte[] hostBytes_,final String playerSetupString) {
 		Thread playerConnectThread = new Thread(new Runnable() {
 			public void run() {
+				
+				Logger.log(LOG_TAG,"playerConnect()");
 				
 				final int STATE_FAILED = -1;
 				final int STATE_NONE = 0;
@@ -259,11 +266,11 @@ public class PlayerNetworkService extends Service {
 					rxSocket.setSoTimeout(4000);
 					state=STATE_READ_TABLE_INFO;
 					reads=0;
-					Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_READ_TABLE_INFO");
+					Logger.log(LOG_TAG,"playerConnect() - read table info");
 				} catch (IOException e) {
 					state=STATE_FAILED;
 					errorMsg="Couldn't open streams";
-					Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+					Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 					e.printStackTrace();
 				}
 				while (state!=STATE_FAILED&&state!=STATE_NONE) {
@@ -282,11 +289,11 @@ public class PlayerNetworkService extends Service {
 										tableInfo=msg;
 										state=STATE_WRITE_SETUP_INFO;
 										buffer="";
-										Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_WRITE_SETUP_INFO");
+										Logger.log(LOG_TAG,"playerConnect() - write setup info");
 									} else if (msg.contains(HostNetwork.TAG_CONNECT_UNSUCCESSFUL)) {
 										state=STATE_FAILED;
 										errorMsg="Table backed out";
-										Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg+": "+msg);
+										Logger.log(LOG_TAG,"playerConnect() - "+errorMsg+" - "+msg);
 										buffer="";
 									}
 									if (buffer.length()>newlineIndex+1) {
@@ -300,13 +307,13 @@ public class PlayerNetworkService extends Service {
 									buffer="";
 									state=STATE_FAILED;
 									errorMsg="Max reads exceeded";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+									Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 								}
 							}
 						} catch (IOException e) {
 							state=STATE_FAILED;
 							errorMsg="Couldn't read Table info";
-							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+							Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 							e.printStackTrace();
 						}
 					} else if (state==STATE_WRITE_SETUP_INFO) {
@@ -315,11 +322,11 @@ public class PlayerNetworkService extends Service {
 							outputStream.write(msg.getBytes());
 							state=STATE_READ_ACK;
 							reads=0;
-							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_READ_ACK");
+							Logger.log(LOG_TAG,"playerConnect() - read ACK");
 						} catch (IOException e) {
 							state=STATE_FAILED;
 							errorMsg="Couldn't write setup info";
-							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+							Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 							e.printStackTrace();
 						}
 					} else if (state==STATE_READ_ACK) {
@@ -341,11 +348,11 @@ public class PlayerNetworkService extends Service {
 										playerNetwork.notifyGameConnected(tableInfo+ackMsg);
 										buffer="";
 										state=STATE_NONE;
-										Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_NONE");
+										Logger.log(LOG_TAG,"playerConnect() - connection successful");
 									} else if (ackMsg.contains(HostNetwork.TAG_CONNECT_UNSUCCESSFUL)) {
 										state=STATE_FAILED;
 										errorMsg="Table backed out";
-										Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg+": "+ackMsg); 
+										Logger.log(LOG_TAG,"playerConnect() - "+errorMsg+" - "+ackMsg); 
 										buffer="";
 									}
 									if (buffer.length()>newlineIndex+1) {
@@ -359,20 +366,20 @@ public class PlayerNetworkService extends Service {
 									buffer="";
 									state=STATE_FAILED;
 									errorMsg="Max reads exceeded";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+									Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 								}
 							}
 						} catch (IOException e) {
 							state=STATE_FAILED;
 							errorMsg="Couldn't read ACK";
-							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+							Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 							e.printStackTrace();
 						}
 					}
 					if (System.currentTimeMillis()-negTimer>MAX_NEG_TIME) {
 						state=STATE_FAILED;
 						errorMsg="Maximum neg time elapsed";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - playerConnectThread - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"playerConnect() - "+errorMsg);
 					}
 				}
 				// if the negotiation failed, close the socket and notify the activity
@@ -408,6 +415,7 @@ public class PlayerNetworkService extends Service {
 		Thread stopListenThread=new Thread(new Runnable() {
 			public void run() {
 				synchronized (listenLock) {
+					Logger.log(LOG_TAG,"stopListen()");
 					currentListenThread=null;
 				}
 			}
@@ -424,6 +432,7 @@ public class PlayerNetworkService extends Service {
 	
 	class ListenRunnable implements Runnable {
 		public void run() {
+			Logger.log(LOG_TAG,"ListenRunnable()");
 			boolean stopListen_=false;
 			String buffer_="";
 			try {
@@ -461,12 +470,15 @@ public class PlayerNetworkService extends Service {
 					}
 				} catch (SocketTimeoutException ste) {
 					// disconnect everything and start reconnect protocol
+					Logger.log(LOG_TAG,"ListenRunnable() - socket timeout");
 					stopListen_=true;
 				} catch (EOFException eofe) {
+					Logger.log(LOG_TAG,"ListenRunnable() - EOF");
 					eofe.printStackTrace();
 					// disconnect everything and start reconnect protocol
 					stopListen_=true;
 				} catch (IOException e) {
+					Logger.log(LOG_TAG,"ListenRunnable() - IO Exception");
 					e.printStackTrace();
 					// disconnect everything and start reconnect protocol
 					stopListen_=true;
@@ -496,6 +508,7 @@ public class PlayerNetworkService extends Service {
 				msg+="\n";
 		}
 		public void run() {
+			Logger.log(LOG_TAG,"sendToHostRunnable("+msg+")");
 			try {
 				if (outputStream!=null) {
 					outputStream.write(msg.getBytes());
@@ -517,6 +530,7 @@ public class PlayerNetworkService extends Service {
 			msg=msg_+"\n";
 		}
 		public void run() {
+			Logger.log(LOG_TAG,"leaveTableRunnable()");
 			try {
 				if (outputStream!=null) {
 					outputStream.write(msg.getBytes());
@@ -531,6 +545,7 @@ public class PlayerNetworkService extends Service {
 	}
 	
 	public void disconnectCurrentGame() {
+		Logger.log(LOG_TAG,"disconnectCurrentGame()");
 		if (inputStream!=null) {
 			try {inputStream.close();}
 			catch (IOException e) {e.printStackTrace();}
@@ -551,6 +566,7 @@ public class PlayerNetworkService extends Service {
     	Thread stopReconnectThread=new Thread(new Runnable() {
 			public void run() {
 				synchronized (reconnectLock) {
+					Logger.log(LOG_TAG,"stopReconnect()");
 					currentReconnectThread=null;
 				}
 			}
@@ -560,6 +576,7 @@ public class PlayerNetworkService extends Service {
     
     public void startReconnect(final byte[] hostBytes,final String reconnectStr) {
     	synchronized (reconnectLock) {
+    		Logger.log(LOG_TAG,"startReconnect()");
     		stopListen();
     		disconnectCurrentGame();
 			currentReconnectThread=new Thread(new reconnectRunnable(hostBytes,reconnectStr));
@@ -591,6 +608,9 @@ public class PlayerNetworkService extends Service {
 			long negTimer=0;
 			int reads=0;
 			String errorMsg="";
+			
+			Logger.log(LOG_TAG,"reconnectRunnable()");
+			
 			while (currentReconnectThread==Thread.currentThread()&&state!=STATE_NONE) {
 				if (state==STATE_POLL_CONNECT) {
 					try {
@@ -603,10 +623,10 @@ public class PlayerNetworkService extends Service {
 						buffer="";
 						negTimer=System.currentTimeMillis();
 						reads=0;
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_READ_TABLE_INFO");
+						Logger.log(LOG_TAG,"reconnectRunnable() - read table info");
 					} catch (IOException e) {
 						e.printStackTrace();
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - Connect attempt failed");
+						Logger.log(LOG_TAG,"reconnectRunnable() - connect attempt failed");
 						try {Thread.sleep(3000);}
 						catch (InterruptedException e1) {e1.printStackTrace();}
 					}
@@ -624,11 +644,11 @@ public class PlayerNetworkService extends Service {
 								if (playerNetwork.validateReconnectTableInfo(msg)) {
 									state=STATE_WRITE_GAME_KEY;
 									buffer="";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_WRITE_GAME_KEY");
+									Logger.log(LOG_TAG,"reconnectRunnable() - write game key");
 								} else if (msg.contains(HostNetwork.TAG_RECONNECT_FAILED)) {
 									state=STATE_FAILED;
 									errorMsg="Table backed out";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg+": "+msg);
+									Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg+" - "+msg);
 									buffer="";
 								}
 								if (buffer.length()>newlineIndex+1) {
@@ -642,18 +662,18 @@ public class PlayerNetworkService extends Service {
 								buffer="";
 								state=STATE_FAILED;
 								errorMsg="Max reads exceeded";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 							}
 							if (System.currentTimeMillis()-negTimer>MAX_NEG_TIME) {
 								state=STATE_FAILED;
 								errorMsg="Maximum neg time elapsed";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 							}
 						}
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't read Table info";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 						e.printStackTrace();
 					}
 				} else if (state==STATE_WRITE_GAME_KEY) {
@@ -662,11 +682,11 @@ public class PlayerNetworkService extends Service {
 						state=STATE_READ_ACK;
 						reads=0;
 						negTimer=System.currentTimeMillis();
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_READ_ACK");
+						Logger.log(LOG_TAG,"reconnectRunnable() - read ACK");
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't write setup info";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 						e.printStackTrace();
 					}
 				} else if (state==STATE_READ_ACK) {
@@ -681,6 +701,7 @@ public class PlayerNetworkService extends Service {
 								int newlineIndex=buffer.indexOf("\n");
 								String ackMsg=buffer.substring(0,newlineIndex);
 								if (playerNetwork.validateReconnectACK(ackMsg)) {
+									Logger.log(LOG_TAG,"reconnectRunnable() - reconnected successfully");
 									commsSocket=rxSocket;
 									PlayerNetworkService.this.inputStream=inputStream;
 									PlayerNetworkService.this.outputStream=outputStream;
@@ -688,11 +709,10 @@ public class PlayerNetworkService extends Service {
 									playerNetwork.notifyReconnected();
 									buffer="";
 									state=STATE_NONE;
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_NONE");
 								} else if (ackMsg.contains(HostNetwork.TAG_RECONNECT_FAILED)) {
 									state=STATE_FAILED;
 									errorMsg="Table backed out";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg+": "+ackMsg); 
+									Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg+" - "+ackMsg); 
 									buffer="";
 								}
 								if (buffer.length()>newlineIndex+1) {
@@ -706,18 +726,18 @@ public class PlayerNetworkService extends Service {
 								buffer="";
 								state=STATE_FAILED;
 								errorMsg="Max reads exceeded";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 							}
 							if (System.currentTimeMillis()-negTimer>MAX_NEG_TIME) {
 								state=STATE_FAILED;
 								errorMsg="Maximum neg time elapsed";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 							}
 						}
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't read ACK";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetworkService - reconnectRunnable - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
 						e.printStackTrace();
 					}
 				}

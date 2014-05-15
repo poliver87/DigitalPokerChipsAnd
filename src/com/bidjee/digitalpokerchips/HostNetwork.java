@@ -23,6 +23,8 @@ import com.bidjee.util.Logger;
 
 public class HostNetwork implements IHostNetwork {
 	
+	public static final String LOG_TAG = "DPCHostNetwork";
+	
 	/////////////// Network Protocol Tags ///////////////
 	public static final String TAG_SEND_DEALER = "<DPC_DEALER/>";
 	public static final String TAG_SEND_DEALER_ACK = "<DPC_DEALER_ACK/>";
@@ -117,13 +119,11 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void onStart(Context c) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onStart()");
 		Intent hostConnectServiceIntent=new Intent(c,HostNetworkService.class);
 		c.bindService(hostConnectServiceIntent,networkServiceConnection,Context.BIND_AUTO_CREATE);
 	}
 	
 	public void onStop(Context c) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onStop()");
 		if (connectServiceBound) {
 			hostNetworkService.stopAnnounce();
 			hostNetworkService.stopAccept();
@@ -137,7 +137,7 @@ public class HostNetwork implements IHostNetwork {
 	private ServiceConnection networkServiceConnection =
     		new ServiceConnection() {    	
     	public void onServiceConnected(ComponentName className, IBinder service) {
-    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onServiceConnected()");
+    		Logger.log(LOG_TAG,"onServiceConnected()");
     		HostNetworkServiceBinder binder = (HostNetworkServiceBinder)service;
     		hostNetworkService = binder.getService();
     		connectServiceBound=true;
@@ -153,13 +153,14 @@ public class HostNetwork implements IHostNetwork {
     		}
     	}    	
     	public void onServiceDisconnected(ComponentName arg0) {
-    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - onServiceDisconnected()");
+    		Logger.log(LOG_TAG,"onServiceDisconnected()");
     		connectServiceBound=false;
     	}
     };
     
     @Override
     public void createTable(String tableName) {
+    	Logger.log(LOG_TAG,"createTable("+tableName+")");
     	this.tableName=tableName;
     	game_key=genGameKey();
     	startReconnect();
@@ -167,6 +168,7 @@ public class HostNetwork implements IHostNetwork {
     
 	@Override
 	public void destroyTable() {
+		Logger.log(LOG_TAG,"destroyTable()");
 		removeAllPlayers();
 		game_key="";
 		tableName="";
@@ -177,7 +179,7 @@ public class HostNetwork implements IHostNetwork {
     
 	@Override
 	public void startLobby(boolean loadedGame,ArrayList<String> playerNames) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - startLobby("+loadedGame+")");
+		Logger.log(LOG_TAG,"startLobby("+loadedGame+")");
 		this.loadedGame=loadedGame;
 		this.playerNames=playerNames;
 		startAnnounce();
@@ -186,7 +188,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void stopLobby() {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - stopLobby()");
+		Logger.log(LOG_TAG,"startLobby()");
 		loadedGame=false;
 		playerNames=null;
 		stopAnnounce();
@@ -197,6 +199,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void sendSetupInfo(String hostName,int position,int color,String chipString) {
+		Logger.log(LOG_TAG,"sendSetupInfo("+hostName+")");
 		String msg=getTimeStamp()+TAG_SETUP_INFO_OPEN;
 		msg+=TAG_COLOR_OPEN+color+TAG_COLOR_CLOSE;
 		msg+=TAG_SEND_CHIPS_OPEN+chipString+TAG_SEND_CHIPS_CLOSE;
@@ -207,12 +210,14 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void promptWaitNextHand(String hostName) {
+		Logger.log(LOG_TAG,"promptWaitNextHand("+hostName+")");
 		String msg=TAG_WAIT_NEXT_HAND;
 		hostNetworkService.sendToPlayer(msg,hostName);
 	}
 	
 	@Override
     public void sendChips(String hostName,int position,String chipString) {
+		Logger.log(LOG_TAG,"sendChips("+hostName+")");
     	String msg=getTimeStamp()+TAG_SEND_CHIPS_OPEN;
     	msg+=chipString+TAG_SEND_CHIPS_CLOSE;
     	hostNetworkService.sendToPlayer(msg,hostName);
@@ -221,18 +226,21 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void sendDealerChip(String hostName) {
+		Logger.log(LOG_TAG,"sendDealerChip("+hostName+")");
 		String msg=getTimeStamp()+TAG_SEND_DEALER;
 		hostNetworkService.sendToPlayer(msg,hostName);
 	}
 	
 	@Override
 	public void recallDealerChip(String hostName) {
+		Logger.log(LOG_TAG,"recallDealerChip("+hostName+")");
 		String msg=getTimeStamp()+TAG_RECALL_DEALER;
 		hostNetworkService.sendToPlayer(msg,hostName);
 	}
     
 	@Override
 	public void syncAllTableStatusMenu(ArrayList<Player> players) {
+		Logger.log(LOG_TAG,"syncAllTableStatusMenu()");
 		String msg=TAG_STATUS_MENU_UPDATE_OPEN;
 		for (Player player:players) {
 			msg=msg+TAG_HOST_NAME_OPEN+player.hostName+TAG_HOST_NAME_CLOSE;
@@ -244,13 +252,15 @@ public class HostNetwork implements IHostNetwork {
 	}
 
 	@Override
-	public void sendTextMessage(String hostName_,String message) {
+	public void sendTextMessage(String hostName,String message) {
+		Logger.log(LOG_TAG,"syncAllTableStatusMenu("+hostName+","+message+")");
 		String msg=TAG_TEXT_MESSAGE_OPEN+message+TAG_TEXT_MESSAGE_CLOSE;
-		hostNetworkService.sendToPlayer(msg,hostName_);
+		hostNetworkService.sendToPlayer(msg,hostName);
 	}
 	
 	@Override
 	public void promptMove(String hostName,int position,int stake,boolean foldEnabled,String message,String messageStateChange) {
+		Logger.log(LOG_TAG,"promptMove("+hostName+","+message+")");
 		String msg=getTimeStamp()+TAG_YOUR_BET_OPEN;
 		msg+=TAG_STAKE_OPEN+stake+TAG_STAKE_CLOSE;
 		msg+=TAG_FOLD_ENABLED_OPEN+foldEnabled+TAG_FOLD_ENABLED_CLOSE;
@@ -263,6 +273,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void cancelMove(String hostName) {
+		Logger.log(LOG_TAG,"cancelMove("+hostName+")");
 		String msg=getTimeStamp()+TAG_CANCEL_MOVE;
 		hostNetworkService.sendToPlayer(msg,hostName);
 		replyPending.remove(hostName);
@@ -270,41 +281,48 @@ public class HostNetwork implements IHostNetwork {
 	
 	@Override
 	public void enableNudge(String dstHostName,String nudgableHostName) {
+		Logger.log(LOG_TAG,"enableNudge("+dstHostName+","+nudgableHostName+")");
 		String msg=TAG_ENABLE_NUDGE_OPEN+nudgableHostName+TAG_ENABLE_NUDGE_CLOSE;
 		hostNetworkService.sendToPlayer(msg,dstHostName);
 	}
 	
 	@Override
 	public void disableNudge() {
+		Logger.log(LOG_TAG,"disableNudge()");
 		String msg=TAG_DISABLE_NUDGE;
 		hostNetworkService.sendToAll(msg);
 	}
 	
 	@Override
 	public void sendBell(String hostName) {
+		//Logger.log(LOG_TAG,"sendBell()");
 		String msg=TAG_SEND_BELL;
 		hostNetworkService.sendToPlayer(msg,hostName);
 	}
 	
 	@Override
 	public void showConnection(String hostName) {
+		Logger.log(LOG_TAG,"showConnection("+hostName+")");
 		String msg=TAG_SHOW_CONNECTION;
 		hostNetworkService.sendToPlayer(msg,hostName);
 	}
 	
 	@Override
 	public void hideConnection(String hostName) {
+		Logger.log(LOG_TAG,"showConnection("+hostName+")");
 		String msg=TAG_HIDE_CONNECTION;
 		hostNetworkService.sendToPlayer(msg,hostName);
 	}
 	
 	@Override
 	public void removePlayer(String hostName) {
+		Logger.log(LOG_TAG,"removePlayer("+hostName+")");
 		replyPending.remove(hostName);
 		playersConnected=hostNetworkService.removePlayer(hostName);
 	}
 
 	public void removeAllPlayers() {
+		Logger.log(LOG_TAG,"removeAllPlayers()");
 		hostNetworkService.removeAll("<GOODBYE/>");
 		replyPending.clear();
 		playersConnected=false;
@@ -312,6 +330,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	/////////////// Host Receives Messages from Player ///////////////
 	public void notifyPlayerConnected(final String hostName,final String msg) {
+		Logger.log(LOG_TAG,"notifyPlayerConnected("+hostName+")");
 		int startIndex=msg.indexOf(PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN) + PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN.length();
 		int endIndex=msg.indexOf(PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE);
 		final String playerName=msg.substring(startIndex, endIndex);
@@ -340,6 +359,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void notifyPlayerReconnected(final String hostName,final String msgStr) {
+		Logger.log(LOG_TAG,"notifyPlayerReconnected("+hostName+")");
 		Gdx.app.postRunnable(new Runnable() {
 			@Override
 			public void run() {
@@ -352,7 +372,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 
     public void parsePlayerMessage(final String hostName,final String msg) {
-    	Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetwork - ParsePlayerMessage() - "+msg);
+    	Logger.log(LOG_TAG,"parsePlayerMessage("+hostName+","+msg+")");
 		if (msg.contains(PlayerNetwork.TAG_PLAYER_NAME_OPEN)&&msg.contains(PlayerNetwork.TAG_PLAYER_NAME_CLOSE)) {
 			int startIndex = msg.indexOf(PlayerNetwork.TAG_PLAYER_NAME_OPEN) + PlayerNetwork.TAG_PLAYER_NAME_OPEN.length();
 			int endIndex = msg.indexOf(PlayerNetwork.TAG_PLAYER_NAME_CLOSE);
@@ -426,6 +446,7 @@ public class HostNetwork implements IHostNetwork {
 		for (int i=0;i<10;i++) {
 			game_key_+=(int)(Math.random()*9.99);
 		}
+		Logger.log(LOG_TAG,"sendBell()");
 		return game_key_;
     }
     
@@ -437,7 +458,7 @@ public class HostNetwork implements IHostNetwork {
 	
 	private void resend(String hostName) {
 		hostNetworkService.sendToPlayer(TAG_RESEND_OPEN+replyPending.get(hostName)+TAG_RESEND_CLOSE,hostName);
-		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetwork - resending: "+replyPending.get(hostName));
+		Logger.log(LOG_TAG,"resend("+hostName+") = "+replyPending.get(hostName));
 	}
 	
 	public boolean requestGamePermission(String rxMsg) {
@@ -454,6 +475,7 @@ public class HostNetwork implements IHostNetwork {
 				}
 			}
 		}
+		Logger.log(LOG_TAG,"requestGamePermission() = "+permission);
 		return permission;
 	}
 	
@@ -488,6 +510,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	private void startAnnounce() {
+		Logger.log(LOG_TAG,"startAnnounce()");
 		doingAnnounce=true;
 		if (connectServiceBound) {
 			spawnAnnounce();
@@ -495,11 +518,13 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	private void stopAnnounce() {
+		Logger.log(LOG_TAG,"stopAnnounce()");
 		hostNetworkService.stopAnnounce();
 		doingAnnounce=false;
 	}
 	
 	private void startAccept() {
+		Logger.log(LOG_TAG,"stopAnnounce()");
 		doingAccept=true;
 		if (connectServiceBound) {
 			spawnAccept();
@@ -507,11 +532,13 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	private void stopAccept() {
+		Logger.log(LOG_TAG,"stopAccept()");
 		hostNetworkService.stopAccept();
 		doingAccept=false;
 	}
 	
 	private void startReconnect() {
+		Logger.log(LOG_TAG,"startReconnect()");
 		doingReconnect=true;
 		if (connectServiceBound) {
 			spawnReconnect();
@@ -519,12 +546,13 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	private void stopReconnect() {
+		Logger.log(LOG_TAG,"stopReconnect()");
 		hostNetworkService.stopReconnect();
 		doingReconnect=false;
 	}
 	
 	public void spawnAnnounce() {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnAnnounce()");
+		Logger.log(LOG_TAG,"spawnAnnounce()");
 		String hostAnnounceStr=HostNetwork.TAG_TABLE_NAME_OPEN+tableName+HostNetwork.TAG_TABLE_NAME_CLOSE;
 		if (loadedGame) {
 			hostAnnounceStr+=HostNetwork.TAG_LOADED_GAME;
@@ -536,7 +564,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void spawnAccept() {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnAccept()");
+		Logger.log(LOG_TAG,"spawnAccept()");
 		String tableNameMsg=HostNetwork.TAG_TABLE_NAME_OPEN+tableName+HostNetwork.TAG_TABLE_NAME_CLOSE;
 		String gameKeyMsg=HostNetwork.TAG_GAME_KEY_OPEN+game_key+HostNetwork.TAG_GAME_KEY_CLOSE;
 		String failedStr=HostNetwork.TAG_CONNECT_UNSUCCESSFUL;
@@ -544,7 +572,7 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	public void spawnReconnect() {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "HostNetwork - spawnReconnect()");
+		Logger.log(LOG_TAG,"spawnReconnect()");
 		String tableNameStr=TAG_RECONNECT_TABLE_NAME_OPEN+tableName+TAG_RECONNECT_TABLE_NAME_CLOSE;
 		String ackStr=TAG_RECONNECT_SUCCESSFUL;
 		String failedStr=TAG_RECONNECT_FAILED;

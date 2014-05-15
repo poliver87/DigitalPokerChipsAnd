@@ -19,8 +19,11 @@ import android.os.IBinder;
 import com.badlogic.gdx.Gdx;
 import com.bidjee.digitalpokerchips.c.DPCGame;
 import com.bidjee.digitalpokerchips.c.Table;
+import com.bidjee.util.Logger;
 
 public class HostNetworkService extends Service {
+	
+	public static final String LOG_TAG = "DPCHostNetworkService";
 	
 	// Network constants
 	private static final int NEG_PORT_RX = 11111;
@@ -72,6 +75,7 @@ public class HostNetworkService extends Service {
 		Thread stopAnnounceThread_=new Thread(new Runnable() {
 			public void run() {
 				synchronized (announceLock) {
+					Logger.log(LOG_TAG,"stopAnnounce()");
 					currentAnnounceThread=null;
 					if (announceSocket!=null) {
 						announceSocket.close();
@@ -84,6 +88,7 @@ public class HostNetworkService extends Service {
 	
 	public void startAnnounce(final String hostAnnounceStr) {
 		synchronized (announceLock) {
+			Logger.log(LOG_TAG,"startAnnounce()");
 			currentAnnounceThread=new Thread(new AnnounceRunnable(hostAnnounceStr));
 			currentAnnounceThread.start();
 		}
@@ -97,6 +102,7 @@ public class HostNetworkService extends Service {
 		@Override
 		public void run() {
     		try {
+    			Logger.log(LOG_TAG,"AnnounceRunnable()");
     			// Setup the Datagram socket
     			announceSocket=new DatagramSocket(NEG_PORT_RX);
     			announceSocket.setSoTimeout(6000);
@@ -110,9 +116,8 @@ public class HostNetworkService extends Service {
         			try {
         				playerLookingPkt.setLength(playerLookingBuf.length);
         				// Wait for a message from a player
-        				Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - AnnounceRunnable - Waiting for broadcast");
         				announceSocket.receive(playerLookingPkt);
-        				Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - AnnounceRunnable - Broadcast received");
+        				Logger.log(LOG_TAG,"AnnounceRunnable() - broadcast received");
         				InetAddress playerAddress=playerLookingPkt.getAddress();
         				String rxMsg=new String(playerLookingPkt.getData(),0,playerLookingPkt.getLength());
     					// host has received a packet from the player, sends a packet to declare that it's a host
@@ -121,13 +126,13 @@ public class HostNetworkService extends Service {
     							decHostPkt.setAddress(playerAddress);
     							try {
     								announceSocket.send(decHostPkt);
-    								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - AnnounceRunnable - Response sent to Player");
+    								Logger.log(LOG_TAG,"AnnounceRunnable() - response sent to player");
     							} catch (IOException e) {
     								e.printStackTrace();
     								error=true;
     							}
     						} else {
-    							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - AnnounceRunnable - Player permission denied");
+    							Logger.log(LOG_TAG,"AnnounceRunnable() - player permission denied");
     						}
     					}
         			} catch (SocketTimeoutException e) {
@@ -150,6 +155,7 @@ public class HostNetworkService extends Service {
 		Thread stopAcceptThread=new Thread(new Runnable() {
 			public void run() {
 				synchronized (acceptLock) {
+					Logger.log(LOG_TAG,"stopAccept()");
 					currentAcceptThread=null;
 					if (serverSocket!=null) {
 						try {
@@ -166,6 +172,7 @@ public class HostNetworkService extends Service {
 	
 	public void startAccept(final String tableNameMsg,final String gameKeyMsg,final String failedStr,final boolean loadedGame_) {
 		synchronized (acceptLock) {
+			Logger.log(LOG_TAG,"startAccept()");
 			currentAcceptThread=new Thread(new acceptRunnable(tableNameMsg,gameKeyMsg,failedStr,loadedGame_));
 			currentAcceptThread.start();
 		}
@@ -183,6 +190,7 @@ public class HostNetworkService extends Service {
 			loadedGame=loadedGame_;
 		}
 		public void run() {
+			Logger.log(LOG_TAG,"acceptRunnable()");
 			boolean noExceptions_=true;
 			try {
 				serverSocket=new ServerSocket(COMM_PORT);
@@ -241,6 +249,7 @@ public class HostNetworkService extends Service {
 			loadedGame=loadedGame_;
 		}
 		public void run() {
+			Logger.log(LOG_TAG,"ConnectNegThread()");
 			DataOutputStream outputStream=null;
 			DataInputStream inputStream=null;
 			String buffer="";
@@ -253,11 +262,11 @@ public class HostNetworkService extends Service {
 				inputStream=new DataInputStream(localSocket.getInputStream());
 				state=STATE_WRITE_TABLE_INFO;
 				negTime=System.currentTimeMillis();
-				Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_WRITE_TABLE_INFO");
+				Logger.log(LOG_TAG,"ConnectNegThread() - write table info");
 			} catch (IOException e) {
 				state=STATE_FAILED;
 				errorMsg="Couldn't open streams";
-				Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg);
+				Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg);
 			}
 			while (state!=STATE_FAILED&&state!=STATE_NONE) {
 				if (state==STATE_WRITE_TABLE_INFO) {
@@ -267,11 +276,11 @@ public class HostNetworkService extends Service {
 						localSocket.setSoTimeout(4000);
 						state=STATE_READ_PLAYER_INFO;
 						reads=0;
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_READ_PLAYER_INFO");
+						Logger.log(LOG_TAG,"ConnectNegThread() - read player info");
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't write table info";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg);
 					}
 				} else if (state==STATE_READ_PLAYER_INFO) {
 					try {
@@ -288,14 +297,15 @@ public class HostNetworkService extends Service {
 									playerInfo=msg;
 									state=STATE_CREATE_CONNECTION;
 									buffer="";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_CREATE_CONNECTION");
+									Logger.log(LOG_TAG,"ConnectNegThread() - create connection");
 								} else if (msg.contains(PlayerNetwork.TAG_GOODBYE)) {
 									state=STATE_FAILED;
 									buffer="";
 									errorMsg="Player backed out";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg+": "+msg);
+									Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg+" - "+msg);
 								} else {
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - Player Info validation failed: "+msg);
+									errorMsg="Player info validation failed";
+									Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg+" - "+msg);
 								}
 								if (buffer.length()>newlineIndex+1) {
 									buffer=buffer.substring(newlineIndex+1);
@@ -308,13 +318,13 @@ public class HostNetworkService extends Service {
 								buffer="";
 								state=STATE_FAILED;
 								errorMsg="Max reads exceeded";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg);
 							}
 						}
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't read player info";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg);
 					}
 				} else if (state==STATE_CREATE_CONNECTION) {
 					synchronized (playerConnections) {
@@ -336,11 +346,11 @@ public class HostNetworkService extends Service {
 		    					playerConnections.add(newPlayerConnection);
 		    					hostNetwork.notifyPlayerConnected(hostName,playerInfo);
 								state=STATE_NONE;
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_NONE");
+								Logger.log(LOG_TAG,"ConnectNegThread() - connection successful");
 							} catch (IOException e) {
 								state=STATE_FAILED;
 								errorMsg="Couldn't write ACK";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg);
 							}
 						}
 					}
@@ -348,7 +358,7 @@ public class HostNetworkService extends Service {
 				if (System.currentTimeMillis()-negTime>MAX_NEG_TIME) {
 					state=STATE_FAILED;
 					errorMsg="Max neg time elapsed";
-					Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ConnectNegThread - STATE_FAILED: "+errorMsg);
+					Logger.log(LOG_TAG,"ConnectNegThread() - "+errorMsg);
 				}
 			}
 			// close the socket if neg was not successful
@@ -380,6 +390,7 @@ public class HostNetworkService extends Service {
 		Thread stopReconnectThread=new Thread(new Runnable() {
 			public void run() {
 				synchronized (reconnectLock) {
+					Logger.log(LOG_TAG,"stopReconnect()");
 					currentReconnectThread=null;
 					if (reconnectServerSocket!=null) {
 						try {reconnectServerSocket.close();}
@@ -393,6 +404,7 @@ public class HostNetworkService extends Service {
 	
 	public void startReconnect(final String tableNameStr,final String ackStr,final String failedStr) {
 		synchronized (reconnectLock) {
+			Logger.log(LOG_TAG,"startReconnect()");
 			currentReconnectThread=new Thread(new reconnectRunnable(tableNameStr,ackStr,failedStr));
 			currentReconnectThread.start();
 		}
@@ -408,6 +420,7 @@ public class HostNetworkService extends Service {
 			this.failedStr=failedStr;
 		}
 		public void run() {
+			Logger.log(LOG_TAG,"reconnectRunnable()");
     		// Wait for a TCP connection request
 			reconnectServerSocket = null;
 			boolean noExceptions_=true;
@@ -454,6 +467,7 @@ public class HostNetworkService extends Service {
 			this.failedStr=failedStr;
 		}
 		public void run() {
+			Logger.log(LOG_TAG,"ReconnectNegThread()");
 			DataOutputStream outputStream=null;
 			DataInputStream inputStream=null;
 			String buffer="";
@@ -467,11 +481,11 @@ public class HostNetworkService extends Service {
 				inputStream=new DataInputStream(localSocket.getInputStream());
 				state=STATE_WRITE_TABLE_INFO;
 				negTime=System.currentTimeMillis();
-				Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_WRITE_TABLE_INFO");
+				Logger.log(LOG_TAG,"ReconnectNegThread() - write table info");
 			} catch (IOException e) {
 				state=STATE_FAILED;
 				errorMsg="Couldn't open streams";
-				Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg);
+				Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg);
 			}
 			while (state!=STATE_FAILED&&state!=STATE_NONE) {
 				if (state==STATE_WRITE_TABLE_INFO) {
@@ -480,11 +494,11 @@ public class HostNetworkService extends Service {
 						localSocket.setSoTimeout(4000);
 						state=STATE_READ_GAME_KEY;
 						reads=0;
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_READ_GAME_KEY");
+						Logger.log(LOG_TAG,"ReconnectNegThread() - read game key");
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't write table info";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg);
 					}
 				} else if (state==STATE_READ_GAME_KEY) {
 					try {
@@ -501,14 +515,15 @@ public class HostNetworkService extends Service {
 									playerInfo=msg;
 									state=STATE_CREATE_CONNECTION;
 									buffer="";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_CREATE_CONNECTION");
+									Logger.log(LOG_TAG,"ReconnectNegThread() - create connection");
 								} else if (msg.contains(PlayerNetwork.TAG_GOODBYE)) {
 									state=STATE_FAILED;
 									buffer="";
 									errorMsg="Player backed out";
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg+": "+msg);
+									Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg+" - "+msg);
 								} else {
-									Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - Game key validation failed: "+msg);
+									errorMsg="Game key validation failed";
+									Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg+" - "+msg);
 								}
 								if (buffer.length()>newlineIndex+1) {
 									buffer=buffer.substring(newlineIndex+1);
@@ -521,13 +536,13 @@ public class HostNetworkService extends Service {
 								buffer="";
 								state=STATE_FAILED;
 								errorMsg="Max reads exceeded";
-								Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg);
+								Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg);
 							}
 						}
 					} catch (IOException e) {
 						state=STATE_FAILED;
 						errorMsg="Couldn't read player info";
-						Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg);
+						Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg);
 					}
 				} else if (state==STATE_CREATE_CONNECTION) {
 					synchronized (playerConnections) {
@@ -537,10 +552,12 @@ public class HostNetworkService extends Service {
 	    					String hostName=address.getHostName();
 	    					synchronized (playerConnections) {
 								// search for pre-existing connection to this player and remove it
+	    						Logger.log(LOG_TAG,"ReconnectNegThread() - reconnection successful");
 								for (int i=0;i<playerConnections.size();i++) {
 									if (playerConnections.get(i).hostName.equals(hostName)) {
 										playerConnections.get(i).disconnect("");
 										playerConnections.remove(i);
+										Logger.log(LOG_TAG,"ReconnectNegThread() - removed pre-existing connection");
 									}
 								}
 								// add this connection to our list and initiate comms protocols
@@ -553,18 +570,17 @@ public class HostNetworkService extends Service {
 		    					hostNetwork.notifyPlayerReconnected(hostName,playerInfo);
 							}
 							state=STATE_NONE;
-							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_NONE");
 						} catch (IOException e) {
 							state=STATE_FAILED;
 							errorMsg="Couldn't write ACK";
-							Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg);
+							Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg);
 						}
 					}
 				}
 				if (System.currentTimeMillis()-negTime>MAX_NEG_TIME) {
 					state=STATE_FAILED;
 					errorMsg="Max neg time elapsed";
-					Gdx.app.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "HostNetworkService - ReconnectNegThread - STATE_FAILED: "+errorMsg);
+					Logger.log(LOG_TAG,"ReconnectNegThread() - "+errorMsg);
 				}
 			}
 			// close the socket if neg was not successful
@@ -592,6 +608,7 @@ public class HostNetworkService extends Service {
 	
 	public void sendToAll(String msg) {
 		synchronized (playerConnections) {
+			Logger.log(LOG_TAG,"sendToAll("+msg+")");
 			for (PlayerConnection playerConnection:playerConnections) {
 				playerConnection.send(msg);
 			}
@@ -600,6 +617,7 @@ public class HostNetworkService extends Service {
 	
 	public void sendToPlayer(String msg, String hostName) {
 		synchronized (playerConnections) {
+			Logger.log(LOG_TAG,"sendToPlayer("+msg+","+hostName+")");
 			for (PlayerConnection playerConnection:playerConnections) {
 				if (playerConnection.hostName.equals(hostName)) {
 					playerConnection.send(msg);
@@ -611,6 +629,7 @@ public class HostNetworkService extends Service {
 	public boolean removePlayer(String _hostName) {
 		boolean playersLeft_;
 		synchronized (playerConnections) {
+			Logger.log(LOG_TAG,"removePlayer("+_hostName+")");
 			for (int i=0;i<playerConnections.size();i++) {
 				if (playerConnections.get(i).hostName.equals(_hostName)) {
 					playerConnections.get(i).disconnect(HostNetwork.TAG_GOODBYE);
@@ -623,6 +642,7 @@ public class HostNetworkService extends Service {
 	}
 	
 	public void removeAll(String exitMsg_) {
+		Logger.log(LOG_TAG,"removeAll()");
 		synchronized (playerConnections) {
 			for (PlayerConnection playerConnection : playerConnections) {
 				playerConnection.disconnect(exitMsg_);

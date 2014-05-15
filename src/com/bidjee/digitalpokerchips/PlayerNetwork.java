@@ -22,6 +22,8 @@ import com.bidjee.util.Logger;
 
 public class PlayerNetwork implements IPlayerNetwork {
 	
+	public static final String LOG_TAG = "DPCPlayerNetwork";
+	
 	////////////////////////////// Network Protocol Tags //////////////////////////////
 	public static final String TAG_PLAYER_NAME_OPEN = "<PLAYER_NAME>";
 	public static final String TAG_PLAYER_NAME_CLOSE = "<PLAYER_NAME/>";
@@ -88,7 +90,6 @@ public class PlayerNetwork implements IPlayerNetwork {
 	////////////////////////////// Lifecycle Events //////////////////////////////
 	
 	public void onSaveInstanceState(Bundle outState_) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onSaveInstanceState()");
 		outState_.putBoolean("tableConnected",tableConnected);
 		outState_.putBoolean("doingHostDiscover",doingHostDiscover);
 		outState_.putByteArray("hostBytes",hostBytes);
@@ -97,7 +98,6 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void onRestoreInstanceState(Bundle savedInstanceState) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onRestoreInstanceState()");
 		tableConnected=savedInstanceState.getBoolean("tableConnected");
 		doingHostDiscover=savedInstanceState.getBoolean("doingHostDiscover");
 		hostBytes=savedInstanceState.getByteArray("hostBytes");
@@ -106,7 +106,6 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void onStart(Context c_) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onStart()");
 		Intent playerConnectServiceIntent = new Intent(c_,PlayerNetworkService.class);
 		c_.bindService(playerConnectServiceIntent,networkServiceConnection,Context.BIND_AUTO_CREATE);
 		if (tableConnected) {
@@ -115,7 +114,6 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void onStop(Context c_) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onStop()");
 		if (connectServiceBound) {
 			playerNetworkService.stopDiscover();
 			playerNetworkService.stopListen();
@@ -130,7 +128,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	
 	private ServiceConnection networkServiceConnection=new ServiceConnection() {
     	public void onServiceConnected(ComponentName className,IBinder service) {
-    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onServiceConnected()");
+    		Logger.log(LOG_TAG,"onServiceConnected()");
     		PlayerNetworkServiceBinder binder=(PlayerNetworkServiceBinder)service;
     		playerNetworkService=binder.getService();
     		connectServiceBound=true;
@@ -144,13 +142,14 @@ public class PlayerNetwork implements IPlayerNetwork {
     		}
     	}    	
     	public void onServiceDisconnected(ComponentName arg0) {
-    		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - onServiceDisconnected()");
+    		Logger.log(LOG_TAG,"onServiceDisconnected()");
     		connectServiceBound=false;
     	}
     };
     
 	@Override
     public void startRequestGames() {
+		Logger.log(LOG_TAG,"startRequestGames()");
     	if (connectServiceBound&&wifiEnabled&&!doingHostDiscover) {
     		spawnDiscover();
     	}
@@ -159,6 +158,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 
 	@Override
     public void stopRequestGames() {
+		Logger.log(LOG_TAG,"startRequestGames()");
     	if (connectServiceBound) {
     		playerNetworkService.stopDiscover();
     	}
@@ -168,7 +168,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	@Override
 	public void requestInvitation(byte[] hostBytes) {
 		if (connectServiceBound) {
-			Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - requestInvitation()");
+			Logger.log(LOG_TAG,"requestInvitation()");
 			String playerAnnounceStr=PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN+playerName+PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE;
     		playerNetworkService.requestInvitation(hostBytes,playerAnnounceStr);
     	}
@@ -176,13 +176,13 @@ public class PlayerNetwork implements IPlayerNetwork {
 	
 	////////////////////////////// Thread Spawners //////////////////////////////
 	public void spawnDiscover() {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnDiscover()");
+		Logger.log(LOG_TAG,"spawnDiscover()");
 		String playerAnnounceStr=PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN+playerName+PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE;
 		playerNetworkService.startDiscover(playerAnnounceStr);
 	}
 	
 	public void spawnConnect(byte[] hostBytes,String playerName,int azimuth,int[] chipNumbers) {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnConnect()");
+		Logger.log(LOG_TAG,"spawnConnect()");
 		String playerSetupString=PlayerNetwork.TAG_PLAYER_NAME_NEG_OPEN+playerName+PlayerNetwork.TAG_PLAYER_NAME_NEG_CLOSE;
 		playerSetupString+=PlayerNetwork.TAG_AZIMUTH_OPEN+azimuth+PlayerNetwork.TAG_AZIMUTH_CLOSE;
 		playerSetupString+=PlayerNetwork.TAG_NUM_A_OPEN+chipNumbers[ChipCase.CHIP_A]+PlayerNetwork.TAG_NUM_A_CLOSE;
@@ -192,7 +192,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void spawnReconnect() {
-		Logger.log(DPCGame.DEBUG_LOG_LIFECYCLE_TAG, "PlayerNetwork - spawnReconnect()");
+		Logger.log(LOG_TAG,"spawnReconnect()");
 		String reconnectMsg=HostNetwork.TAG_GAME_KEY_OPEN+game_key+HostNetwork.TAG_GAME_KEY_CLOSE;
 		playerNetworkService.startReconnect(hostBytes,reconnectMsg);
 	}
@@ -240,6 +240,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	////////////////////////////// Reconnect Protocol //////////////////////////////
 	public void startReconnect() {
 		if (tableConnected) {
+			Logger.log(LOG_TAG,"startReconnect()");
 			player.notifyConnectionLost();
 			doingReconnect=true;
 			spawnReconnect();
@@ -247,7 +248,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void notifyReconnected() {
-		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG,"PlayerNetwork - notifyReconnected()");
+		Logger.log(LOG_TAG,"notifyReconnected()");
 		player.notifyReconnected();
 		doingReconnect=false;
 		playerNetworkService.sendToHost(TAG_PLAYER_NAME_OPEN+playerName+TAG_PLAYER_NAME_CLOSE);
@@ -257,6 +258,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 
 	@Override
     public void requestConnect(DiscoveredTable table_,int azimuth_,int[] chipNumbers) {
+		Logger.log(LOG_TAG,"requestConnect("+table_.getName()+","+azimuth_+")");
     	if (connectServiceBound) {
     		hostBytes=table_.getHostBytes();
     		spawnConnect(table_.getHostBytes(),playerName,azimuth_,chipNumbers);
@@ -267,6 +269,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 
 	@Override
     public void setName(String playerName) {
+		Logger.log(LOG_TAG,"setName("+playerName+")");
     	this.playerName=playerName;
     	if (tableConnected) {
     		if (connectServiceBound&&!doingReconnect) {
@@ -278,6 +281,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 
 	@Override
     public void submitMove(int move,String chipString) {
+		Logger.log(LOG_TAG,"submitMove("+move+","+chipString+")");
     	if (connectServiceBound&&!doingReconnect) {
     		String msg=TAG_SUBMIT_MOVE_OPEN;
     		msg+=TAG_MOVE_OPEN+move+TAG_MOVE_CLOSE;
@@ -291,6 +295,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	@Override
     public void leaveTable() {
     	if (connectServiceBound) {
+    		Logger.log(LOG_TAG,"leaveTable()");
     		tableConnected=false;
     		doingReconnect=false;
     		playerNetworkService.leaveTable(TAG_GOODBYE);
@@ -300,6 +305,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	@Override
 	public void sendBell(String hostName) {
 		if (connectServiceBound&&!doingReconnect) {
+			//Logger.log(LOG_TAG,"sendBell()");
     		String msg=TAG_SEND_BELL_OPEN+hostName+TAG_SEND_BELL_CLOSE;
     		playerNetworkService.sendToHost(msg);
     	}
@@ -308,6 +314,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	////////////////////////////// Table sends Message to Player //////////////////////////////
     
 	public void notifyTableFound(final byte[] hostBytes,final String rxMsg) {
+		Logger.log(LOG_TAG,"notifyTableFound("+rxMsg+")");
 		int startIndex=rxMsg.indexOf(HostNetwork.TAG_TABLE_NAME_OPEN) + HostNetwork.TAG_TABLE_NAME_OPEN.length();
 		int endIndex=rxMsg.indexOf(HostNetwork.TAG_TABLE_NAME_CLOSE);
 		final String tableName=rxMsg.substring(startIndex,endIndex);
@@ -333,6 +340,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void notifyGameConnected(String msg) {
+		Logger.log(LOG_TAG,"notifyGameConnected("+msg+")");
 		int startIndex = msg.indexOf(HostNetwork.TAG_TABLE_NAME_OPEN) + HostNetwork.TAG_TABLE_NAME_OPEN.length();
 		int endIndex = msg.indexOf(HostNetwork.TAG_TABLE_NAME_CLOSE);
 		final String tableName = msg.substring(startIndex, endIndex);
@@ -352,6 +360,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 	}
 	
 	public void notifyConnectFailed() {
+		Logger.log(LOG_TAG,"notifyConnectFailed()");
 		Gdx.app.postRunnable(new Runnable() {
 			@Override
 			public void run() {
@@ -369,12 +378,12 @@ public class PlayerNetwork implements IPlayerNetwork {
 	
 	private void resendLast() {
 		playerNetworkService.sendToHost(lastReply);
-		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetwork - resendLast() - Resending "+lastReply);
+		Logger.log(LOG_TAG,"resendLast("+lastReply+")");
 	}
 
 	public void parseGameMessage(String msg) {
 		boolean resendReply=false;
-		Logger.log(DPCGame.DEBUG_LOG_NETWORK_TAG, "PlayerNetwork - parseGameMessage() - "+msg);
+		Logger.log(LOG_TAG,"parseGameMessage("+msg+")");
 		if (msg.contains(HostNetwork.TAG_RESEND_OPEN)&&msg.contains(HostNetwork.TAG_RESEND_CLOSE)) {
 			// strip off re-send header
 			int startIndex = msg.indexOf(HostNetwork.TAG_RESEND_OPEN) + HostNetwork.TAG_RESEND_OPEN.length();
