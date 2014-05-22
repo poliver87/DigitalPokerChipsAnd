@@ -21,8 +21,6 @@ import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.IBinder;
 
-import com.badlogic.gdx.Gdx;
-import com.bidjee.digitalpokerchips.c.DPCGame;
 import com.bidjee.util.Logger;
 
 public class PlayerNetworkService extends Service {
@@ -33,7 +31,6 @@ public class PlayerNetworkService extends Service {
 	private static final int NEG_PORT_TX = 11111;
 	private static final int NEG_PORT_RX = 11112;
 	private static final int COMM_PORT = 11113;
-	private static final int RECONNECT_PORT = 11114;
 	
 	private static final int MAX_NEG_TIME = 9000;
 	private static final int MAX_READS = 5;
@@ -44,6 +41,7 @@ public class PlayerNetworkService extends Service {
 	PlayerNetwork playerNetwork;
 	// off switch for discover loop
 	Thread currentDiscoverThread;
+	boolean killNegThread=false;
 	Thread currentListenThread;
 	//
 	DatagramSocket broadcastSocket;
@@ -166,12 +164,10 @@ public class PlayerNetworkService extends Service {
 								Logger.log(LOG_TAG,"discoverRunnable() - broadcast response received");
 								String rxMsg=new String(hostRespPkt.getData(),0,hostRespPkt.getLength());
 								// When the response is received, check for the right message then notify activity
-								if (rxMsg.contains(HostNetwork.TAG_TABLE_NAME_OPEN)&&rxMsg.contains(HostNetwork.TAG_VAL_C_CLOSE)) {
-									byte[] hostBytes=hostRespPkt.getAddress().getAddress();
-									playerNetwork.notifyTableFound(hostBytes,rxMsg);
-									sleepThread=true;
-									Logger.log(LOG_TAG,"discoverRunnable() - table discovered");
-								}
+								byte[] hostBytes=hostRespPkt.getAddress().getAddress();
+								Logger.log(LOG_TAG,"discoverRunnable() - discover response Rxd");
+								playerNetwork.discoverResponseRxd(hostBytes,rxMsg);
+								sleepThread=true;
 							} catch (SocketTimeoutException e) {
 								sleepThread=true;
 							} catch (IOException e1) {
@@ -341,14 +337,20 @@ public class PlayerNetworkService extends Service {
 									int newlineIndex=buffer.indexOf("\n");
 									String ackMsg=buffer.substring(0,newlineIndex);
 									if (playerNetwork.validateTableACK(ackMsg)) {
-										commsSocket=rxSocket;
-										PlayerNetworkService.this.inputStream=inputStream;
-										PlayerNetworkService.this.outputStream=outputStream;
-										startListen();
-										playerNetwork.notifyGameConnected(tableInfo+ackMsg);
-										buffer="";
-										state=STATE_NONE;
-										Logger.log(LOG_TAG,"playerConnect() - connection successful");
+										if (!killNegThread) {
+											commsSocket=rxSocket;
+											PlayerNetworkService.this.inputStream=inputStream;
+											PlayerNetworkService.this.outputStream=outputStream;
+											playerNetwork.notifyGameConnected(tableInfo+ackMsg);
+											buffer="";
+											state=STATE_NONE;
+											Logger.log(LOG_TAG,"playerConnect() - connection successful");
+										} else {
+											state=STATE_FAILED;
+											errorMsg="kill neg thread requested";
+											Logger.log(LOG_TAG,"playerConnect() - "+errorMsg+" - "+ackMsg); 
+											buffer="";
+										}
 									} else if (ackMsg.contains(HostNetwork.TAG_CONNECT_UNSUCCESSFUL)) {
 										state=STATE_FAILED;
 										errorMsg="Table backed out";
@@ -406,21 +408,20 @@ public class PlayerNetworkService extends Service {
 				} // end if (!gotACK)
 			} // end run()
 		});
-		playerConnectThread.start();
+		synchronized (listenLock) {
+			killNegThread=false;
+			playerConnectThread.start();
+		}
 	}
 	
 	Object listenLock=new Object();
 	
-	public void stopListen() {		
-		Thread stopListenThread=new Thread(new Runnable() {
-			public void run() {
-				synchronized (listenLock) {
-					Logger.log(LOG_TAG,"stopListen()");
-					currentListenThread=null;
-				}
-			}
-		});
-		stopListenThread.start();
+	public void stopListen() {
+		synchronized (listenLock) {
+			Logger.log(LOG_TAG,"stopListen()");
+			killNegThread=true;
+			currentListenThread=null;
+		}
 	}
 	
 	public void startListen() {
@@ -490,7 +491,8 @@ public class PlayerNetworkService extends Service {
 				}
 			} // end while
 			if (stopListen_&&currentListenThread!=null) {
-				playerNetwork.startReconnect();
+				disconnectCurrentGame();
+				playerNetwork.notifyConnectionLost();
 			}
 		} // end run
 	}
@@ -539,7 +541,6 @@ public class PlayerNetworkService extends Service {
     			e.printStackTrace();
     		}
 			stopListen();
-			stopReconnect();
 			disconnectCurrentGame();
 		}
 	}
@@ -558,213 +559,6 @@ public class PlayerNetworkService extends Service {
 			try {commsSocket.close();}
 			catch (IOException e) {e.printStackTrace();}
 		}
-	}
-    
-    Object reconnectLock=new Object();
-    
-    public void stopReconnect() {
-    	Thread stopReconnectThread=new Thread(new Runnable() {
-			public void run() {
-				synchronized (reconnectLock) {
-					Logger.log(LOG_TAG,"stopReconnect()");
-					currentReconnectThread=null;
-				}
-			}
-		});
-    	stopReconnectThread.start();
-    }
-    
-    public void startReconnect(final byte[] hostBytes,final String reconnectStr) {
-    	synchronized (reconnectLock) {
-    		Logger.log(LOG_TAG,"startReconnect()");
-    		stopListen();
-    		disconnectCurrentGame();
-			currentReconnectThread=new Thread(new reconnectRunnable(hostBytes,reconnectStr));
-			currentReconnectThread.start();
-		}
-    }
-    
-	public class reconnectRunnable implements Runnable {
-		byte[] hostBytes;
-		String reconnectMsg;
-		public reconnectRunnable(byte[] hostBytes,String reconnectStr) {
-			this.hostBytes=hostBytes;
-			this.reconnectMsg=reconnectStr+"\n";
-		}
-		public void run() {
-			final int STATE_FAILED = -1;
-			final int STATE_NONE = 0;
-			final int STATE_POLL_CONNECT = 1;
-			final int STATE_READ_TABLE_INFO = 2;
-			final int STATE_WRITE_GAME_KEY = 3;
-			final int STATE_READ_ACK = 4;
-			
-			int state=STATE_POLL_CONNECT;
-			
-			Socket rxSocket=null;
-			DataInputStream inputStream=null;
-			DataOutputStream outputStream=null;
-			String buffer="";
-			long negTimer=0;
-			int reads=0;
-			String errorMsg="";
-			
-			Logger.log(LOG_TAG,"reconnectRunnable()");
-			
-			while (currentReconnectThread==Thread.currentThread()&&state!=STATE_NONE) {
-				if (state==STATE_POLL_CONNECT) {
-					try {
-						rxSocket=new Socket();
-						rxSocket.connect(new InetSocketAddress(InetAddress.getByAddress(hostBytes),RECONNECT_PORT),5000);
-						inputStream=new DataInputStream(rxSocket.getInputStream());
-						outputStream=new DataOutputStream(rxSocket.getOutputStream());
-						rxSocket.setSoTimeout(4000);
-						state=STATE_READ_TABLE_INFO;
-						buffer="";
-						negTimer=System.currentTimeMillis();
-						reads=0;
-						Logger.log(LOG_TAG,"reconnectRunnable() - read table info");
-					} catch (IOException e) {
-						e.printStackTrace();
-						Logger.log(LOG_TAG,"reconnectRunnable() - connect attempt failed");
-						try {Thread.sleep(3000);}
-						catch (InterruptedException e1) {e1.printStackTrace();}
-					}
-				} else if (state==STATE_READ_TABLE_INFO) {
-					try {
-						byte[] byteBuffer=new byte[1024];
-						int len=inputStream.read(byteBuffer);
-						if (len>0) {
-							String inText=new String(byteBuffer,"UTF-8");
-							inText=inText.substring(0,len);
-							buffer+=inText;
-							while (buffer.contains("\n")) {
-								int newlineIndex=buffer.indexOf("\n");
-								String msg=buffer.substring(0,newlineIndex);
-								if (playerNetwork.validateReconnectTableInfo(msg)) {
-									state=STATE_WRITE_GAME_KEY;
-									buffer="";
-									Logger.log(LOG_TAG,"reconnectRunnable() - write game key");
-								} else if (msg.contains(HostNetwork.TAG_RECONNECT_FAILED)) {
-									state=STATE_FAILED;
-									errorMsg="Table backed out";
-									Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg+" - "+msg);
-									buffer="";
-								}
-								if (buffer.length()>newlineIndex+1) {
-									buffer=buffer.substring(newlineIndex+1);
-								} else {
-									buffer="";
-								}
-							}
-							reads++;
-							if (reads>MAX_READS) {
-								buffer="";
-								state=STATE_FAILED;
-								errorMsg="Max reads exceeded";
-								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-							}
-							if (System.currentTimeMillis()-negTimer>MAX_NEG_TIME) {
-								state=STATE_FAILED;
-								errorMsg="Maximum neg time elapsed";
-								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-							}
-						}
-					} catch (IOException e) {
-						state=STATE_FAILED;
-						errorMsg="Couldn't read Table info";
-						Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-						e.printStackTrace();
-					}
-				} else if (state==STATE_WRITE_GAME_KEY) {
-					try {
-						outputStream.write(reconnectMsg.getBytes());
-						state=STATE_READ_ACK;
-						reads=0;
-						negTimer=System.currentTimeMillis();
-						Logger.log(LOG_TAG,"reconnectRunnable() - read ACK");
-					} catch (IOException e) {
-						state=STATE_FAILED;
-						errorMsg="Couldn't write setup info";
-						Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-						e.printStackTrace();
-					}
-				} else if (state==STATE_READ_ACK) {
-					try {
-						byte[] byteBuffer=new byte[1024];
-						int len=inputStream.read(byteBuffer);
-						if (len>0) {
-							String inText=new String(byteBuffer,"UTF-8");
-							inText=inText.substring(0,len);
-							buffer+=inText;
-							while (buffer.contains("\n")) {
-								int newlineIndex=buffer.indexOf("\n");
-								String ackMsg=buffer.substring(0,newlineIndex);
-								if (playerNetwork.validateReconnectACK(ackMsg)) {
-									Logger.log(LOG_TAG,"reconnectRunnable() - reconnected successfully");
-									commsSocket=rxSocket;
-									PlayerNetworkService.this.inputStream=inputStream;
-									PlayerNetworkService.this.outputStream=outputStream;
-									startListen();
-									playerNetwork.notifyReconnected();
-									buffer="";
-									state=STATE_NONE;
-								} else if (ackMsg.contains(HostNetwork.TAG_RECONNECT_FAILED)) {
-									state=STATE_FAILED;
-									errorMsg="Table backed out";
-									Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg+" - "+ackMsg); 
-									buffer="";
-								}
-								if (buffer.length()>newlineIndex+1) {
-									buffer=buffer.substring(newlineIndex+1);
-								} else {
-									buffer="";
-								}
-							}
-							reads++;
-							if (reads>MAX_READS) {
-								buffer="";
-								state=STATE_FAILED;
-								errorMsg="Max reads exceeded";
-								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-							}
-							if (System.currentTimeMillis()-negTimer>MAX_NEG_TIME) {
-								state=STATE_FAILED;
-								errorMsg="Maximum neg time elapsed";
-								Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-							}
-						}
-					} catch (IOException e) {
-						state=STATE_FAILED;
-						errorMsg="Couldn't read ACK";
-						Logger.log(LOG_TAG,"reconnectRunnable() - "+errorMsg);
-						e.printStackTrace();
-					}
-				}
-				// if the negotiation failed, close the socket and notify the activity
-				if (state==STATE_FAILED) {
-					if (outputStream!=null) {
-						try {
-							String msg=PlayerNetwork.TAG_GOODBYE+errorMsg+"\n";
-							outputStream.write(msg.getBytes());
-						} catch (IOException e) {e.printStackTrace();}
-					}
-					if (inputStream!=null) {
-						try {inputStream.close();
-						} catch (IOException e) {e.printStackTrace();}
-					}
-					if (outputStream!=null) {
-						try {outputStream.close();
-						} catch (IOException e) {e.printStackTrace();}
-					}
-					if (rxSocket!=null) {
-						try {rxSocket.close();
-						} catch (IOException e) {}
-					}
-					state=STATE_POLL_CONNECT;
-				}
-			}
-		} // end run()
 	}
     
 	private static void simulateDelay() {

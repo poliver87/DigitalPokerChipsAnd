@@ -15,19 +15,19 @@ public class PlayerConnection {
 	Socket commsSocket;
 	DataInputStream inputStream;
 	DataOutputStream outputStream;
-	String hostName;
+	String playerName;
 	private KeepAliveThread currentKeepAliveThread;
 	
 	HostNetwork network;
 	
 	PlayerConnection(Socket commsSocket_,DataInputStream inputStream_,DataOutputStream outputStream_,
-			String hostName_,HostNetwork network) {
+			String playerName,HostNetwork network) {
 		commsSocket=commsSocket_;
 		inputStream=inputStream_;
 		outputStream=outputStream_;
-		hostName=hostName_;
 		currentKeepAliveThread=null;
 		this.network=network;
+		this.playerName=playerName;
 	}
 	
 	public void startListen() {
@@ -92,7 +92,7 @@ public class PlayerConnection {
 						text_=new String(inBuffer_,"UTF-8");
 						text_=text_.substring(0, len_);
 						synchronized (this) {
-							network.parsePlayerMessage(hostName,text_);
+							network.parsePlayerMessage(playerName,text_);
 						}
 					} else {
 						keepReading_=false;
