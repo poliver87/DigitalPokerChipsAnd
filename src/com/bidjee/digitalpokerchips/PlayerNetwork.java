@@ -439,11 +439,11 @@ public class PlayerNetwork implements IPlayerNetwork {
 		} else if (msg.contains(HostNetwork.TAG_ENABLE_NUDGE_OPEN)&&msg.contains(HostNetwork.TAG_ENABLE_NUDGE_CLOSE)) {
 			int startIndex = msg.indexOf(HostNetwork.TAG_ENABLE_NUDGE_OPEN) + HostNetwork.TAG_ENABLE_NUDGE_OPEN.length();
 			int endIndex = msg.indexOf(HostNetwork.TAG_ENABLE_NUDGE_CLOSE);
-			final String hostName = msg.substring(startIndex,endIndex);
+			final String name = msg.substring(startIndex,endIndex);
 			Gdx.app.postRunnable(new Runnable() {
 				@Override
 				public void run() {
-					player.enableNudge(hostName);
+					player.enableNudge(name);
 				}
 			});
 		} else if (msg.contains(HostNetwork.TAG_CANCEL_MOVE)) {
