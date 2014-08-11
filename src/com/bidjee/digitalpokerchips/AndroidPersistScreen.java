@@ -8,7 +8,7 @@ import com.bidjee.digitalpokerchips.m.ChipStack;
 
 public class AndroidPersistScreen implements IPersistScreen {
 
-	// testing git
+	// MASTER
 	
 	Bundle screenBundle;
 	
