@@ -123,7 +123,7 @@ public class AndroidTextFactory implements ITextFactory {
 			width_=(int)(textPaint.measureText(label.getText())+strokeWidth_)+1;
 		}
 		if (label.shadow) {
-			// tan-1 (0.4), double because text will be centered
+			// tan (-0.4), double because text will be centered
 			width_+=2*textPaint.ascent()*-0.43;
 		}
 		label.radiusX=(int) (width_*0.5f)+3;

@@ -1,35 +1,55 @@
 package com.bidjee.digitalpokerchips;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
+import android.opengl.GLES20;
+import android.opengl.GLUtils;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.format.Formatter;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.Surface;
+import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
+import com.badlogic.gdx.graphics.Pixmap.Format;
+import com.badlogic.gdx.graphics.Texture;
 import com.bidjee.digitalpokerchips.c.DPCGame;
-import com.bidjee.digitalpokerchips.c.Table;
 import com.bidjee.digitalpokerchips.i.IActivity;
 import com.bidjee.digitalpokerchips.i.IHostNetwork;
 import com.bidjee.digitalpokerchips.i.IPlayerNetwork;
 import com.bidjee.digitalpokerchips.i.ITableStore;
 import com.bidjee.digitalpokerchips.i.ITextFactory;
-import com.bidjee.digitalpokerchips.m.ChipCase;
 import com.bidjee.util.Logger;
+import com.facebook.Request;
+import com.facebook.Response;
+import com.facebook.Session;
+import com.facebook.SessionState;
+import com.facebook.UiLifecycleHelper;
+import com.facebook.model.GraphUser;
+import com.facebook.widget.LoginButton;
 
 public class DPCActivity extends AndroidApplication implements IActivity, ITableStore {
 	
@@ -48,25 +68,44 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	private HostNetwork hostNetwork;
 	private AndroidTextFactory textFactory;
 	
+	private UiLifecycleHelper facebookUiHelper;
+	LoginButton authButton;
+	
 	//////////////////// Life Cycle Events ///////////////////
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		//clearAllTables(Table.SAVE_NUM_SLOTS);
-		wifiBroadcastFilter=new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-		mWifiBroadcastReceiver=new WifiBroadcastReceiver();
+		// Create Facebook UI Helper
+		facebookUiHelper = new UiLifecycleHelper(this,callback);
+		facebookUiHelper.onCreate(savedInstanceState);
+		// Customise the window
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		// Configure the libGDX environment
 		AndroidApplicationConfiguration config=new AndroidApplicationConfiguration();
 		config.useGL20=true;
 		config.hideStatusBar=false;
 		config.useAccelerometer=true;
 		config.useCompass=true;
 		game=new DPCGame(this);
+		View gameView = initializeForView(game,config);
+		
+		setContentView(R.layout.activity_main);
+		
+		authButton=(LoginButton)findViewById(R.id.authButton);
+		
+		RelativeLayout mainLayout=(RelativeLayout)findViewById(R.id.mainLayout);
+		mainLayout.addView(gameView, 0);
+		
+		
+		wifiBroadcastFilter=new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+		mWifiBroadcastReceiver=new WifiBroadcastReceiver();
+		
 		textFactory=new AndroidTextFactory(this);
 		playerNetwork=new PlayerNetwork();
 		hostNetwork=new HostNetwork();
-        initialize(game,config);
-		getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        
 		
 	}
 	
@@ -80,24 +119,32 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		mWifiLock.acquire();
 		playerNetwork.onStart(this);
 		hostNetwork.onStart(this);
+		
 	}
 	
 	@Override
 	public void onResume() {
 		super.onResume();
 		Logger.log(LOG_TAG,"onResume()");
+		Session session = Session.getActiveSession();
+		if (session!=null && (session.isOpened()||session.isClosed())) {
+			onSessionStateChange(session, session.getState(), null);
+		}
+		facebookUiHelper.onResume();
 	}
 	
 	@Override
 	public void onPause() {
 		super.onPause();
 		Logger.log(LOG_TAG,"onPause()");
+		facebookUiHelper.onPause();
 	}
 	
 	@Override
 	public void onStop() {
 		super.onStop();
 		Logger.log(LOG_TAG,"onStop()");
+		facebookUiHelper.onStop();
 		this.unregisterReceiver(mWifiBroadcastReceiver);
 		if (mWifiLock.isHeld()) {
 			mWifiLock.release();
@@ -105,12 +152,14 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		mWifiLock=null;
 		playerNetwork.onStop(this);
 		hostNetwork.onStop(this);
+		
 	}
 	
 	@Override
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		Logger.log(LOG_TAG,"onSaveInstanceState()");
+		facebookUiHelper.onSaveInstanceState(outState);
 	}
 	
 	@Override
@@ -123,11 +172,19 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	public void onDestroy() {
 		super.onDestroy();
 		Logger.log(LOG_TAG,"onDestroy()");
+		facebookUiHelper.onDestroy();
 		mWifiLock=null;
 		mWifiBroadcastReceiver=null;
 		game=null;
 		playerNetwork=null;
 		hostNetwork=null;
+		
+	}
+	
+	@Override
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		facebookUiHelper.onActivityResult(requestCode, resultCode, data);
 	}
 	
 	//////////////////// Messages from WifiBroadcastReceiver ////////////////////
@@ -308,6 +365,85 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	@Override
 	public ITextFactory getITextFactory() {
 		return textFactory;
+	}
+	
+	//// Facebook stuff ////
+	@Override
+	public void performFacebookClick() {
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				authButton.performClick();
+			}
+		});
+		
+	}
+	
+	private Session.StatusCallback callback = new Session.StatusCallback() {
+		@Override
+		public void call(Session session, SessionState state, Exception exception) {
+			onSessionStateChange(session,state,exception);
+		}
+	};
+	
+	private void onSessionStateChange(final Session session, SessionState state, Exception exception) {
+		if (state.isOpened()) {
+			Logger.log(LOG_TAG,"Facebook logged in");
+			Request request = Request.newMeRequest(session, 
+		            new Request.GraphUserCallback() {
+		        @Override
+		        public void onCompleted(final GraphUser user, Response response) {
+		            // If the response is successful
+		            if (session == Session.getActiveSession()) {
+		                if (user != null) {
+		                	UpdateFacebookInfoTask updateTask=new UpdateFacebookInfoTask();
+		                	updateTask.execute(user);
+		                }
+		            }
+		            if (response.getError() != null) {
+		                // Handle errors, will do so later.
+		            }
+		        }
+		    });
+		    request.executeAsync();
+			
+		} else if (state.isClosed()) {
+			Logger.log(LOG_TAG,"Facebook logged out");
+		}
+	}
+	
+	class UpdateFacebookInfoTask extends AsyncTask<GraphUser,Void,Void> {
+		
+		@Override
+		protected Void doInBackground(final GraphUser... users) {
+			URL imageURL=null;
+        	Bitmap bitmap=null;
+			try {
+				imageURL = new URL("https://graph.facebook.com/" + users[0].getId() + "/picture?width=300&height=300");
+				bitmap = BitmapFactory.decodeStream(imageURL.openConnection().getInputStream());
+				
+				
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			final Bitmap bitmapFinal=bitmap;
+			Gdx.app.postRunnable(new Runnable() {
+				@Override
+				public void run() {
+					// TODO manage the texture memory
+					Texture tex = new Texture(bitmapFinal.getWidth(),bitmapFinal.getHeight(), Format.RGBA8888);
+					GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,tex.getTextureObjectHandle());
+					GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,bitmapFinal,0);
+					GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,0);
+					bitmapFinal.recycle();
+					game.mWL.thisPlayer.playerLoginDone(users[0].getFirstName(), tex);
+				}
+			});
+			return null;
+		}
 	}
 	
 }

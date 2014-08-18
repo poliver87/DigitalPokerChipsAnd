@@ -1,6 +1,9 @@
 <resources>
 
     <string name="app_name">DigitalPokerChipsAnd</string>
-	<string name="crash_toast_text">Oh Dear! It Crashed!s</string>
+	
+	<string name="app_id">1460876834196210</string>
     
+	<string name="crash_toast_text">Oh Dear! It Crashed!</string>
+	
 </resources>
