@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -25,9 +26,10 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
+import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ImageView;
+import android.webkit.WebView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -38,6 +40,7 @@ import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.bidjee.digitalpokerchips.c.DPCGame;
 import com.bidjee.digitalpokerchips.i.IActivity;
+import com.bidjee.digitalpokerchips.i.IDPCSprite;
 import com.bidjee.digitalpokerchips.i.IHostNetwork;
 import com.bidjee.digitalpokerchips.i.IPlayerNetwork;
 import com.bidjee.digitalpokerchips.i.ITableStore;
@@ -51,6 +54,7 @@ import com.facebook.UiLifecycleHelper;
 import com.facebook.model.GraphUser;
 import com.facebook.widget.LoginButton;
 
+@SuppressLint("NewApi")
 public class DPCActivity extends AndroidApplication implements IActivity, ITableStore {
 	
 	public static final String LOG_TAG = "DPCActivity";
@@ -71,6 +75,8 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	private UiLifecycleHelper facebookUiHelper;
 	LoginButton authButton;
 	
+	HelpView helpWebView;
+	
 	//////////////////// Life Cycle Events ///////////////////
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -78,6 +84,12 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		// Create Facebook UI Helper
 		facebookUiHelper = new UiLifecycleHelper(this,callback);
 		facebookUiHelper.onCreate(savedInstanceState);
+		
+		helpWebView=new HelpView(this);
+		helpWebView.clearCache(true);
+		helpWebView.loadUrl("http://www.kegrunmobile.com/support/in_app_help.html");
+		helpWebView.setBackgroundColor(0x00000000);
+		
 		// Customise the window
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -106,6 +118,8 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		playerNetwork=new PlayerNetwork();
 		hostNetwork=new HostNetwork();
         
+		
+		mainLayout.addView(helpWebView);
 		
 	}
 	
@@ -343,6 +357,11 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	@Override
 	public ITableStore getITableStore() {
 		return this;
+	}
+	
+	@Override
+	public IDPCSprite getHelpWebView() {
+		return helpWebView;
 	}
 
 	@Override
