@@ -95,47 +95,49 @@ public class AndroidTextFactory implements ITextFactory {
 			textPaint.setFakeBoldText(false);
 		}
 		textPaint.setTextSize(label.getTextSize());
-		float strokeWidth_=0;
+		float strokeWidth=0;
 		if (label.outline||label.strokeWidth>0) {
 			if (label.strokeWidth>0) {
-				strokeWidth_=Math.round(label.getTextSize()*label.strokeWidth);
+				strokeWidth=Math.round(label.getTextSize()*label.strokeWidth);
 			} else {
-				strokeWidth_=Math.round(label.getTextSize()*0.1f);
+				strokeWidth=Math.round(label.getTextSize()*0.1f);
 			}
 		}
-		textPaint.setStrokeWidth(strokeWidth_);
+		textPaint.setStrokeWidth(strokeWidth);
 		
-		int width_=0;
-		int height_=0;
+		int width=0;
+		int height=0;
 		if (label.renderVertical) {
-			height_=(int) (Math.abs(textPaint.ascent())+
-					Math.abs(textPaint.descent())+strokeWidth_)+1;
-			height_*=label.getText().length();
+			height=(int) (Math.abs(textPaint.ascent())+
+					Math.abs(textPaint.descent())+strokeWidth)+1;
+			height*=label.getText().length();
 			for (int i=0;i<label.getText().length();i++) {
-				int thisWidth=(int)(textPaint.measureText(label.getText().substring(i,i+1))+strokeWidth_)+1;
-				if (thisWidth>width_) {
-					width_=thisWidth;
+				int thisWidth=(int)(textPaint.measureText(label.getText().substring(i,i+1))+strokeWidth)+1;
+				if (thisWidth>width) {
+					width=thisWidth;
 				}
 			}
 		} else {
-			height_=(int) (Math.abs(textPaint.ascent())+
-					Math.abs(textPaint.descent())+strokeWidth_)+1;
-			width_=(int)(textPaint.measureText(label.getText())+strokeWidth_)+1;
+			//height=(int) (Math.abs(textPaint.ascent())+
+			//		Math.abs(textPaint.descent())+strokeWidth)+1;
+			height=(int) (textPaint.descent()-textPaint.ascent()+strokeWidth);
+			Gdx.app.log("", label.getText()+ " height: "+height);
+			width=(int)(textPaint.measureText(label.getText())+strokeWidth)+1;
 		}
 		if (label.shadow) {
 			// tan (-0.4), double because text will be centered
-			width_+=2*textPaint.ascent()*-0.43;
+			width+=2*textPaint.ascent()*-0.43;
 		}
-		label.radiusX=(int) (width_*0.5f)+3;
-		width_=label.radiusX*2;
-		label.radiusY=(int) (height_*0.5f)+2;
-		height_=label.radiusY*2;
+		label.radiusX=(int) (width*0.5f)+3;
+		width=label.radiusX*2;
+		label.radiusY=(int) (height*0.5f)+2;
+		height=label.radiusY*2;
 		if (powerTwo) {
-			width_=nextPowerTwo(width_);
-			height_=nextPowerTwo(height_);
+			width=nextPowerTwo(width);
+			height=nextPowerTwo(height);
 		}
 		
-		Bitmap bitmap=Bitmap.createBitmap(width_,height_,Bitmap.Config.ARGB_8888);
+		Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 		textPaint.setTextAlign(Paint.Align.CENTER);
 		if (label.renderVertical) {
 			renderTextVertical(label,bitmap,color,outlineColor);
@@ -149,7 +151,10 @@ public class AndroidTextFactory implements ITextFactory {
 	public static void renderTextHorizontal(TextLabel label,Bitmap bitmap,Color color,Color outlineColor) {
 		Canvas canvas_=new Canvas(bitmap);
 		int x_=label.radiusX;
-		int y_=(int) (label.radiusY-((textPaint.descent() + textPaint.ascent())*0.5f));
+		//int y_=(int) (Math.abs(textPaint.ascent())+textPaint.getStrokeWidth()*0.5f+1);
+		float textHeight=textPaint.descent()-textPaint.ascent();
+		float textOffset=(textHeight/2)-textPaint.descent();
+		int y_=(int) (label.radiusY+textOffset);
 		if (label.shadow) {
 			textPaint.setColor(colorToInt(new Color(0,0,0,0.4f)));
 			textPaint.setTextSkewX((float) -0.4);
@@ -157,6 +162,7 @@ public class AndroidTextFactory implements ITextFactory {
 			canvas_.drawText(label.getText(),x_,y_,textPaint);
 			textPaint.setTextSkewX(0);
 		}
+		
 		if (label.outline) {
 			textPaint.setColor(colorToInt(outlineColor));
 			textPaint.setStyle(Paint.Style.STROKE);
@@ -173,6 +179,7 @@ public class AndroidTextFactory implements ITextFactory {
 			textPaint.setStyle(Paint.Style.FILL);
 			canvas_.drawText(label.getText(),x_,y_,textPaint);
 		}
+		
 	}
 	
 	public static void renderTextVertical(TextLabel label,Bitmap bitmap,Color color,Color outlineColor) {
@@ -241,15 +248,15 @@ public class AndroidTextFactory implements ITextFactory {
 			textPaint.setTypeface(Typeface.DEFAULT);
 		}
 		textPaint.setTextSize(label.getTextSize());
-		float strokeWidth_=0;
+		float strokeWidth=0;
 		if (label.outline||label.strokeWidth>0) {
 			if (label.strokeWidth>0) {
-				strokeWidth_=Math.round(label.getTextSize()*label.strokeWidth);
+				strokeWidth=Math.round(label.getTextSize()*label.strokeWidth);
 			} else {
-				strokeWidth_=Math.round(label.getTextSize()*0.1f);
+				strokeWidth=Math.round(label.getTextSize()*0.1f);
 			}
 		}
-		textPaint.setStrokeWidth(strokeWidth_);
+		textPaint.setStrokeWidth(strokeWidth);
 		float textWidth_=textPaint.measureText(text_);
 		boolean withinBounds_=textWidth_<label.maxRadiusX*2;
 		return withinBounds_;
