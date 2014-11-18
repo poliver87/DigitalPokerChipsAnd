@@ -460,20 +460,6 @@ public class PlayerNetwork implements IPlayerNetwork {
 					player.disableNudge();
 				}
 			});
-		} else if (msg.contains(HostNetwork.TAG_SHOW_CONNECTION)) {
-			Gdx.app.postRunnable(new Runnable() {
-				@Override
-				public void run() {
-					player.showConnection();
-				}
-			});
-		} else if (msg.contains(HostNetwork.TAG_HIDE_CONNECTION)) {
-			Gdx.app.postRunnable(new Runnable() {
-				@Override
-				public void run() {
-					player.hideConnection();
-				}
-			});
 		} else if (msg.contains(HostNetwork.TAG_GOODBYE)) {
 			leaveTable();
 			Gdx.app.postRunnable(new Runnable() {
