@@ -368,16 +368,10 @@ public class PlayerNetwork implements IPlayerNetwork {
 			int startIndex = msg.indexOf(HostNetwork.TAG_STAKE_OPEN) + HostNetwork.TAG_STAKE_OPEN.length();
 			int endIndex = msg.indexOf(HostNetwork.TAG_STAKE_CLOSE);
 			final int betStake = Integer.parseInt(msg.substring(startIndex, endIndex));
-			startIndex = msg.indexOf(HostNetwork.TAG_FOLD_ENABLED_OPEN) + HostNetwork.TAG_FOLD_ENABLED_OPEN.length();
-			endIndex = msg.indexOf(HostNetwork.TAG_FOLD_ENABLED_CLOSE);
-			final boolean foldEnabled = Boolean.parseBoolean(msg.substring(startIndex, endIndex));
-			startIndex = msg.indexOf(HostNetwork.TAG_MESSAGE_OPEN) + HostNetwork.TAG_MESSAGE_OPEN.length();
-			endIndex = msg.indexOf(HostNetwork.TAG_MESSAGE_CLOSE);
-			final String message = msg.substring(startIndex, endIndex);
-			startIndex = msg.indexOf(HostNetwork.TAG_MESSAGE_STATE_CHANGE_OPEN) + HostNetwork.TAG_MESSAGE_STATE_CHANGE_OPEN.length();
-			endIndex = msg.indexOf(HostNetwork.TAG_MESSAGE_STATE_CHANGE_CLOSE);
-			final String messageStateChange = msg.substring(startIndex, endIndex);
-			final MovePrompt thisMovePrompt=new MovePrompt(betStake,foldEnabled,message,messageStateChange);
+			startIndex = msg.indexOf(HostNetwork.TAG_BLINDS_OPEN) + HostNetwork.TAG_BLINDS_OPEN.length();
+			endIndex = msg.indexOf(HostNetwork.TAG_BLINDS_CLOSE);
+			final int blinds = Integer.parseInt(msg.substring(startIndex, endIndex));
+			final MovePrompt thisMovePrompt=new MovePrompt(betStake,blinds);
 			final int chipAmount=HostNetwork.unwrapInt(msg,HostNetwork.TAG_SYNC_CHIPS_WITH_MOVE_OPEN,
 					HostNetwork.TAG_SYNC_CHIPS_WITH_MOVE_CLOSE);
 			Gdx.app.postRunnable(new Runnable() {
@@ -395,9 +389,19 @@ public class PlayerNetwork implements IPlayerNetwork {
 					player.syncChips(chipAmount);
 				}
 			});
-		} else if (msg.contains(HostNetwork.TAG_SEND_CHIPS_OPEN)&&msg.contains(HostNetwork.TAG_SEND_CHIPS_CLOSE)) {
-			int startIndex = msg.indexOf(HostNetwork.TAG_SEND_CHIPS_OPEN) + HostNetwork.TAG_SEND_CHIPS_OPEN.length();
-			int endIndex = msg.indexOf(HostNetwork.TAG_SEND_CHIPS_CLOSE);
+		} else if (msg.contains(HostNetwork.TAG_SEND_CHIPS_BUYIN_OPEN)&&msg.contains(HostNetwork.TAG_SEND_CHIPS_BUYIN_CLOSE)) {
+			int startIndex = msg.indexOf(HostNetwork.TAG_SEND_CHIPS_BUYIN_OPEN) + HostNetwork.TAG_SEND_CHIPS_BUYIN_OPEN.length();
+			int endIndex = msg.indexOf(HostNetwork.TAG_SEND_CHIPS_BUYIN_CLOSE);
+			final String chipString = msg.substring(startIndex, endIndex);
+			Gdx.app.postRunnable(new Runnable() {
+				@Override
+				public void run() {
+					player.doWin(ChipStack.parseStack(chipString));
+				}
+			});
+		} else if (msg.contains(HostNetwork.TAG_SEND_CHIPS_WIN_OPEN)&&msg.contains(HostNetwork.TAG_SEND_CHIPS_WIN_CLOSE)) {
+			int startIndex = msg.indexOf(HostNetwork.TAG_SEND_CHIPS_WIN_OPEN) + HostNetwork.TAG_SEND_CHIPS_WIN_OPEN.length();
+			int endIndex = msg.indexOf(HostNetwork.TAG_SEND_CHIPS_WIN_CLOSE);
 			final String chipString = msg.substring(startIndex, endIndex);
 			Gdx.app.postRunnable(new Runnable() {
 				@Override
@@ -419,16 +423,6 @@ public class PlayerNetwork implements IPlayerNetwork {
 					player.setDealer(false);
 				}
 			});
-		} else if (msg.contains(HostNetwork.TAG_TEXT_MESSAGE_OPEN)&&msg.contains(HostNetwork.TAG_TEXT_MESSAGE_CLOSE)) {
-			int startIndex = msg.indexOf(HostNetwork.TAG_TEXT_MESSAGE_OPEN) + HostNetwork.TAG_TEXT_MESSAGE_OPEN.length();
-			int endIndex = msg.indexOf(HostNetwork.TAG_TEXT_MESSAGE_CLOSE);
-			final String textMessage = msg.substring(startIndex,endIndex);
-			Gdx.app.postRunnable(new Runnable() {
-				@Override
-				public void run() {
-					player.textMessage(textMessage);
-				}
-			});
 		} else if (msg.contains(HostNetwork.TAG_SEND_BELL)) {
 			Gdx.app.postRunnable(new Runnable() {
 				@Override
@@ -436,28 +430,11 @@ public class PlayerNetwork implements IPlayerNetwork {
 					player.doBell();
 				}
 			});
-		} else if (msg.contains(HostNetwork.TAG_ENABLE_NUDGE_OPEN)&&msg.contains(HostNetwork.TAG_ENABLE_NUDGE_CLOSE)) {
-			int startIndex = msg.indexOf(HostNetwork.TAG_ENABLE_NUDGE_OPEN) + HostNetwork.TAG_ENABLE_NUDGE_OPEN.length();
-			int endIndex = msg.indexOf(HostNetwork.TAG_ENABLE_NUDGE_CLOSE);
-			final String name = msg.substring(startIndex,endIndex);
-			Gdx.app.postRunnable(new Runnable() {
-				@Override
-				public void run() {
-					player.enableNudge(name);
-				}
-			});
 		} else if (msg.contains(HostNetwork.TAG_CANCEL_MOVE)) {
 			Gdx.app.postRunnable(new Runnable() {
 				@Override
 				public void run() {
 					player.cancelMove();
-				}
-			});
-		} else if (msg.contains(HostNetwork.TAG_DISABLE_NUDGE)) {
-			Gdx.app.postRunnable(new Runnable() {
-				@Override
-				public void run() {
-					player.disableNudge();
 				}
 			});
 		} else if (msg.contains(HostNetwork.TAG_GOODBYE)) {
