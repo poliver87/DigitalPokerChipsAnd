@@ -68,6 +68,8 @@ public class HostNetwork implements IHostNetwork {
 	public static final String TAG_DISABLE_NUDGE = "<DISABLE_NUDGE/>";
 	public static final String TAG_SHOW_CONNECTION = "<SHOW_CONNECTION/>";
 	public static final String TAG_HIDE_CONNECTION = "<HIDE_CONNECTION/>";
+	public static final String TAG_ARRANGE = "<ARRANGE/>";
+	public static final String TAG_SELECT_DEALER = "<SELECT_DEALER/>";
 	public static final String TAG_CANCEL_MOVE = "<TAG_CANCEL_MOVE/>";
 	public static final String TAG_WAIT_NEXT_HAND = "<TAG_WAIT_NEXT_HAND/>";
 	public static final String TAG_CONNECT_NOW = "<TAG_CONNECT_NOW/>";
@@ -270,6 +272,20 @@ public class HostNetwork implements IHostNetwork {
 		Logger.log(LOG_TAG,"showConnection("+playerName+")");
 		String msg=TAG_HIDE_CONNECTION;
 		hostNetworkService.sendToPlayer(msg,playerName);
+	}
+	
+	@Override
+	public void arrange() {
+		Logger.log(LOG_TAG,"arrange()");
+		String msg=TAG_ARRANGE;
+		hostNetworkService.sendToAll(msg);
+	}
+	
+	@Override
+	public void selectDealer() {
+		Logger.log(LOG_TAG,"selectDealer()");
+		String msg=TAG_SELECT_DEALER;
+		hostNetworkService.sendToAll(msg);
 	}
 	
 	@Override

@@ -121,7 +121,6 @@ public class AndroidTextFactory implements ITextFactory {
 			//height=(int) (Math.abs(textPaint.ascent())+
 			//		Math.abs(textPaint.descent())+strokeWidth)+1;
 			height=(int) (textPaint.descent()-textPaint.ascent()+strokeWidth);
-			Gdx.app.log("", label.getText()+ " height: "+height);
 			width=(int)(textPaint.measureText(label.getText())+strokeWidth)+1;
 		}
 		if (label.shadow) {
@@ -194,7 +193,6 @@ public class AndroidTextFactory implements ITextFactory {
 			int bottom=bounds.bottom;
 			int heightMinusBottom=height-bottom;
 			labelHeight+=heightMinusBottom*1.2f;
-			Gdx.app.log("DPC", str+":"+height);
 			if (label.shadow) {
 				textPaint.setColor(colorToInt(new Color(0,0,0,0.4f)));
 				textPaint.setTextSkewX((float) -0.4);

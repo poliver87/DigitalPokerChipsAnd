@@ -474,6 +474,20 @@ public class PlayerNetwork implements IPlayerNetwork {
 					player.hideConnection();
 				}
 			});
+		} else if (msg.contains(HostNetwork.TAG_ARRANGE)) {
+			Gdx.app.postRunnable(new Runnable() {
+				@Override
+				public void run() {
+					player.notifyArrange();
+				}
+			});
+		} else if (msg.contains(HostNetwork.TAG_SELECT_DEALER)) {
+			Gdx.app.postRunnable(new Runnable() {
+				@Override
+				public void run() {
+					player.notifySelectDealer();
+				}
+			});
 		} else if (msg.contains(HostNetwork.TAG_GOODBYE)) {
 			leaveTable();
 			Gdx.app.postRunnable(new Runnable() {
