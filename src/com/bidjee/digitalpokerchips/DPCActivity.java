@@ -386,6 +386,31 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 		return textFactory;
 	}
 	
+	@Override
+	public void brightenScreen() {
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				WindowManager.LayoutParams layout = getWindow().getAttributes();
+				layout.screenBrightness = -1;
+				getWindow().setAttributes(layout);
+			}
+		});
+		
+	}
+	
+	@Override
+	public void dimScreen() {
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				WindowManager.LayoutParams layout = getWindow().getAttributes();
+				layout.screenBrightness = 0.1f;
+				getWindow().setAttributes(layout);
+			}
+		});
+	}
+	
 	//// Facebook stuff ////
 	@Override
 	public void performFacebookClick() {

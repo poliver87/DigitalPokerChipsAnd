@@ -42,16 +42,12 @@ public class HostNetwork implements IHostNetwork {
 	public static final String TAG_YOUR_BET_CLOSE = "<YOUR_BET/>";
 	public static final String TAG_STAKE_OPEN = "<STAKE>";
 	public static final String TAG_STAKE_CLOSE = "<STAKE/>";
-	public static final String TAG_FOLD_ENABLED_OPEN = "<FOLD_ENABLED>";
-	public static final String TAG_FOLD_ENABLED_CLOSE = "<FOLD_ENABLED/>";
-	public static final String TAG_MESSAGE_OPEN = "<MESSAGE>";
-	public static final String TAG_MESSAGE_CLOSE = "<MESSAGE/>";
-	public static final String TAG_MESSAGE_STATE_CHANGE_OPEN = "<MESSAGE_STATE_CHANGE>";
-	public static final String TAG_MESSAGE_STATE_CHANGE_CLOSE = "<MESSAGE_STATE_CHANGE/>";
-	public static final String TAG_SEND_CHIPS_OPEN = "<WIN>";
-	public static final String TAG_SEND_CHIPS_CLOSE = "<WIN/>";
-	public static final String TAG_TEXT_MESSAGE_OPEN = "<TEXT_MESSAGE>";
-	public static final String TAG_TEXT_MESSAGE_CLOSE = "<TEXT_MESSAGE/>";
+	public static final String TAG_BLINDS_OPEN = "<BLINDS>";
+	public static final String TAG_BLINDS_CLOSE = "<BLINDS/>";
+	public static final String TAG_SEND_CHIPS_BUYIN_OPEN = "<CHIPS_BUYIN>";
+	public static final String TAG_SEND_CHIPS_BUYIN_CLOSE = "<CHIPS_BUYIN/>";
+	public static final String TAG_SEND_CHIPS_WIN_OPEN = "<CHIPS_WIN>";
+	public static final String TAG_SEND_CHIPS_WIN_CLOSE = "<CHIPS_WIN/>";
 	public static final String TAG_GOODBYE = "<GOODBYE/>";
 	public static final String TAG_TABLE_NAME_OPEN = "<TABLE_NAME>";
 	public static final String TAG_TABLE_NAME_CLOSE = "<TABLE_NAME/>";
@@ -63,16 +59,24 @@ public class HostNetwork implements IHostNetwork {
 	public static final String TAG_VAL_C_CLOSE = "<VAL_C/>";
 	public static final String TAG_CONNECT_UNSUCCESSFUL = "<DPC_CONNECTION_UNSUCCESSFUL/>";
 	public static final String TAG_SEND_BELL = "<SENDING_BELL/>";
-	public static final String TAG_ENABLE_NUDGE_OPEN = "<ENABLE_NUDGE>";
-	public static final String TAG_ENABLE_NUDGE_CLOSE = "<ENABLE_NUDGE/>";
-	public static final String TAG_DISABLE_NUDGE = "<DISABLE_NUDGE/>";
-	public static final String TAG_SHOW_CONNECTION = "<SHOW_CONNECTION/>";
-	public static final String TAG_HIDE_CONNECTION = "<HIDE_CONNECTION/>";
 	public static final String TAG_ARRANGE = "<ARRANGE/>";
 	public static final String TAG_SELECT_DEALER = "<SELECT_DEALER/>";
 	public static final String TAG_CANCEL_MOVE = "<TAG_CANCEL_MOVE/>";
 	public static final String TAG_WAIT_NEXT_HAND = "<TAG_WAIT_NEXT_HAND/>";
 	public static final String TAG_CONNECT_NOW = "<TAG_CONNECT_NOW/>";
+	public static final String TAG_DEAL_OPEN = "<TAG_DEAL>";
+	public static final String TAG_DEAL_CLOSE = "<TAG_DEAL/>";
+	public static final String TAG_DEAL_WAIT_OPEN = "<DEAL_WAIT>";
+	public static final String TAG_DEAL_WAIT_CLOSE = "<DEAL_WAIT/>";
+	public static final String TAG_DEAL_WAIT_NAME_OPEN = "<DEAL_WAIT_NAME>";
+	public static final String TAG_DEAL_WAIT_NAME_CLOSE = "<DEAL_WAIT_NAME/>";
+	public static final String TAG_DEAL_WAIT_STAGE_OPEN = "<DEAL_WAIT_STAGE>";
+	public static final String TAG_DEAL_WAIT_STAGE_CLOSE = "<DEAL_WAIT_STAGE/>";
+	public static final String TAG_BET_WAIT_OPEN = "<BET_WAIT>";
+	public static final String TAG_BET_WAIT_CLOSE = "<BET_WAIT/>";
+	public static final String TAG_BET_WAIT_NAME_OPEN = "<BET_WAIT_NAME>";
+	public static final String TAG_BET_WAIT_NAME_CLOSE = "<BET_WAIT_NAME/>";
+	public static final String TAG_SHOW_CARDS = "<SHOW_CARDS/>";
 	
 	/////////////// State Variables ///////////////
 	boolean wifiEnabled;
@@ -169,13 +173,20 @@ public class HostNetwork implements IHostNetwork {
 		hostNetworkService.sendToPlayer(msg,playerName);
 	}
 	
+	public void sendChipsBuyin(String playerName,String chipString) {
+		Logger.log(LOG_TAG,"sendChipsBuyin("+playerName+")");
+	   	String msg=TAG_SEND_CHIPS_BUYIN_OPEN;
+	   	msg+=chipString+TAG_SEND_CHIPS_BUYIN_CLOSE;
+	   	hostNetworkService.sendToPlayer(msg,playerName);
+	}
+	
 	@Override
-    public void sendChips(String playerName,String chipString) {
-		Logger.log(LOG_TAG,"sendChips("+playerName+")");
-    	String msg=TAG_SEND_CHIPS_OPEN;
-    	msg+=chipString+TAG_SEND_CHIPS_CLOSE;
-    	hostNetworkService.sendToPlayer(msg,playerName);
-    }
+	public void sendChipsWin(String playerName,String chipString) {
+		Logger.log(LOG_TAG,"sendChipsWin("+playerName+")");
+	   	String msg=TAG_SEND_CHIPS_WIN_OPEN;
+	   	msg+=chipString+TAG_SEND_CHIPS_WIN_CLOSE;
+	   	hostNetworkService.sendToPlayer(msg,playerName);
+	 }
 	
 	@Override
 	public void sendDealerChip(String playerName) {
@@ -203,26 +214,17 @@ public class HostNetwork implements IHostNetwork {
 		msg=msg+TAG_STATUS_MENU_UPDATE_CLOSE;
 		hostNetworkService.sendToAll(msg);
 	}
-
-	@Override
-	public void sendTextMessage(String playerName,String message) {
-		Logger.log(LOG_TAG,"syncAllTableStatusMenu("+playerName+","+message+")");
-		String msg=TAG_TEXT_MESSAGE_OPEN+message+TAG_TEXT_MESSAGE_CLOSE;
-		hostNetworkService.sendToPlayer(msg,playerName);
-	}
 	
-	@Override
-	public void promptMove(String playerName,MovePrompt movePrompt,int chipAmount) {
-		Logger.log(LOG_TAG,"promptMove("+playerName+","+movePrompt.message+")");
-		String msg=TAG_YOUR_BET_OPEN;
-		msg+=TAG_STAKE_OPEN+movePrompt.stake+TAG_STAKE_CLOSE;
-		msg+=TAG_FOLD_ENABLED_OPEN+movePrompt.foldEnabled+TAG_FOLD_ENABLED_CLOSE;
-		msg+=TAG_MESSAGE_OPEN+movePrompt.message+TAG_MESSAGE_CLOSE;
-		msg+=TAG_MESSAGE_STATE_CHANGE_OPEN+movePrompt.messageStateChange+TAG_MESSAGE_STATE_CHANGE_CLOSE;
-		msg+=TAG_SYNC_CHIPS_WITH_MOVE_OPEN+chipAmount+TAG_SYNC_CHIPS_WITH_MOVE_CLOSE;
-		msg+=TAG_YOUR_BET_CLOSE;
-		hostNetworkService.sendToPlayer(msg,playerName);
-	}
+ 	@Override
+ 	public void promptMove(String playerName,MovePrompt movePrompt,int chipTotal) {
+ 		Logger.log(LOG_TAG,"promptMove("+playerName+","+movePrompt.stake+")");
+ 		String msg=TAG_YOUR_BET_OPEN;
+ 		msg+=TAG_STAKE_OPEN+movePrompt.stake+TAG_STAKE_CLOSE;
+		msg+=TAG_BLINDS_OPEN+movePrompt.blinds+TAG_BLINDS_CLOSE;
+		msg+=TAG_SYNC_CHIPS_WITH_MOVE_OPEN+chipTotal+TAG_SYNC_CHIPS_WITH_MOVE_CLOSE;
+ 		msg+=TAG_YOUR_BET_CLOSE;
+ 		hostNetworkService.sendToPlayer(msg,playerName);
+ 	}
 	
 	@Override
 	public void cancelMove(String playerName) {
@@ -239,38 +241,9 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	@Override
-	public void enableNudge(String dstPlayerName,String nudgablePlayerName) {
-		Logger.log(LOG_TAG,"enableNudge("+dstPlayerName+","+nudgablePlayerName+")");
-		String msg=TAG_ENABLE_NUDGE_OPEN+nudgablePlayerName+TAG_ENABLE_NUDGE_CLOSE;
-		hostNetworkService.sendToPlayer(msg,dstPlayerName);
-	}
-	
-	@Override
-	public void disableNudge() {
-		Logger.log(LOG_TAG,"disableNudge()");
-		String msg=TAG_DISABLE_NUDGE;
-		hostNetworkService.sendToAll(msg);
-		// TODO split this up at Table level
-	}
-	
-	@Override
 	public void sendBell(String playerName) {
 		//Logger.log(LOG_TAG,"sendBell()");
 		String msg=TAG_SEND_BELL;
-		hostNetworkService.sendToPlayer(msg,playerName);
-	}
-	
-	@Override
-	public void showConnection(String playerName) {
-		Logger.log(LOG_TAG,"showConnection("+playerName+")");
-		String msg=TAG_SHOW_CONNECTION;
-		hostNetworkService.sendToPlayer(msg,playerName);
-	}
-	
-	@Override
-	public void hideConnection(String playerName) {
-		Logger.log(LOG_TAG,"showConnection("+playerName+")");
-		String msg=TAG_HIDE_CONNECTION;
 		hostNetworkService.sendToPlayer(msg,playerName);
 	}
 	
@@ -298,6 +271,39 @@ public class HostNetwork implements IHostNetwork {
 		Logger.log(LOG_TAG,"removeAllPlayers()");
 		hostNetworkService.removeAll("<GOODBYE/>");
 		playersConnected=false;
+	}
+	
+	@Override
+	public void promptDealer(String playerName,int dealStage) {
+		Logger.log(LOG_TAG,"promptDealer("+playerName+","+dealStage+")");
+		String msg=TAG_DEAL_OPEN+dealStage+TAG_DEAL_CLOSE;
+		hostNetworkService.sendToPlayer(msg,playerName);
+	}
+	
+	@Override
+	public void notifyPlayerWaitDealer(String playerName,String dealerName,int dealStage) {
+		Logger.log(LOG_TAG,"notifyPlayerWaitDealer("+playerName+","+dealerName+","+dealStage+")");
+		String msg=TAG_DEAL_WAIT_OPEN;
+		msg=msg+TAG_DEAL_WAIT_NAME_OPEN+dealerName+TAG_DEAL_WAIT_NAME_CLOSE;
+		msg=msg+TAG_DEAL_WAIT_STAGE_OPEN+dealStage+TAG_DEAL_WAIT_STAGE_CLOSE;
+		msg=msg+TAG_DEAL_WAIT_CLOSE;
+		hostNetworkService.sendToPlayer(msg,playerName);
+	}
+	
+	@Override
+	public void notifyPlayerWaitBet(String playerName,String betterName) {
+		Logger.log(LOG_TAG,"notifyPlayerWaitBet("+playerName+","+betterName+")");
+		String msg=TAG_BET_WAIT_OPEN;
+		msg=msg+TAG_BET_WAIT_NAME_OPEN+betterName+TAG_BET_WAIT_NAME_CLOSE;
+		msg=msg+TAG_BET_WAIT_CLOSE;
+		hostNetworkService.sendToPlayer(msg,playerName);
+	}
+	
+	@Override
+	public void promptShowCards(String playerName) {
+		Logger.log(LOG_TAG,"notifyShowCards("+playerName+")");
+		String msg=TAG_SHOW_CARDS;
+		hostNetworkService.sendToPlayer(msg,playerName);
 	}
 	
 	/////////////// Host Receives Messages from Player ///////////////
