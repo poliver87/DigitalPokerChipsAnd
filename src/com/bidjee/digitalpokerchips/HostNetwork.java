@@ -1,7 +1,5 @@
 package com.bidjee.digitalpokerchips;
 
-import java.util.ArrayList;
-
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -14,8 +12,9 @@ import com.bidjee.digitalpokerchips.HostNetworkService.HostNetworkServiceBinder;
 import com.bidjee.digitalpokerchips.c.Table;
 import com.bidjee.digitalpokerchips.i.IHostNetwork;
 import com.bidjee.digitalpokerchips.m.ChipCase;
+import com.bidjee.digitalpokerchips.m.GameMenuData;
 import com.bidjee.digitalpokerchips.m.MovePrompt;
-import com.bidjee.digitalpokerchips.m.Player;
+import com.bidjee.digitalpokerchips.m.PlayerMenuItem;
 import com.bidjee.util.Logger;
 
 public class HostNetwork implements IHostNetwork {
@@ -30,12 +29,22 @@ public class HostNetwork implements IHostNetwork {
 	public static final String TAG_SYNC_CHIPS_CLOSE = "<TAG_SYNC_CHIPS/>";
 	public static final String TAG_SYNC_CHIPS_WITH_MOVE_OPEN = "<TAG_SYNC_CHIPS_WITH_MOVE>";
 	public static final String TAG_SYNC_CHIPS_WITH_MOVE_CLOSE = "<TAG_SYNC_CHIPS_WITH_MOVE/>";
-	public static final String TAG_STATUS_MENU_UPDATE_OPEN = "<STATUS_MENU_UPDATE>";
-	public static final String TAG_STATUS_MENU_UPDATE_CLOSE = "<STATUS_MENU_UPDATE/>";
-	public static final String TAG_PLAYER_NAME_OPEN = "<PLAYER_NAME>";
-	public static final String TAG_PLAYER_NAME_CLOSE = "<PLAYER_NAME/>";
-	public static final String TAG_AMOUNT_OPEN = "<AMOUNT>";
-	public static final String TAG_AMOUNT_CLOSE = "<AMOUNT/>";
+	public static final String TAG_GAME_DATA_OPEN = "<GAME_DATA>";
+	public static final String TAG_GAME_DATA_CLOSE = "<GAME_DATA/>";
+	public static final String TAG_GAME_DATA_NAME_OPEN = "<GAME_DATA_NAME>";
+	public static final String TAG_GAME_DATA_NAME_CLOSE = "<GAME_DATA_NAME/>";
+	public static final String TAG_GAME_DATA_DEAL_OPEN = "<GAME_DATA_DEAL>";
+	public static final String TAG_GAME_DATA_DEAL_CLOSE = "<GAME_DATA_DEAL/>";
+	public static final String TAG_GAME_DATA_POT_OPEN = "<GAME_DATA_POT>";
+	public static final String TAG_GAME_DATA_POT_CLOSE = "<GAME_DATA_POT/>";
+	public static final String TAG_GAME_DATA_PLAYER_OPEN = "<GAME_DATA_PLAYER>";
+	public static final String TAG_GAME_DATA_PLAYER_CLOSE = "<GAME_DATA_PLAYER/>";
+	public static final String TAG_GAME_DATA_PLAYER_NAME_OPEN = "<GAME_DATA_PLAYER_NAME>";
+	public static final String TAG_GAME_DATA_PLAYER_NAME_CLOSE = "<GAME_DATA_PLAYER_NAME/>";
+	public static final String TAG_GAME_DATA_PLAYER_BET_OPEN = "<GAME_DATA_PLAYER_BET>";
+	public static final String TAG_GAME_DATA_PLAYER_BET_CLOSE = "<GAME_DATA_PLAYER_BET/>";
+	public static final String TAG_GAME_DATA_PLAYER_TOTAL_OPEN = "<GAME_DATA_PLAYER_TOTAL>";
+	public static final String TAG_GAME_DATA_PLAYER_TOTAL_CLOSE = "<GAME_DATA_PLAYER_TOTAL/>";
 	public static final String TAG_COLOR_OPEN = "<COLOR>";
 	public static final String TAG_COLOR_CLOSE = "<COLOR/>";
 	public static final String TAG_YOUR_BET_OPEN = "<YOUR_BET>";
@@ -205,15 +214,21 @@ public class HostNetwork implements IHostNetwork {
 	}
     
 	@Override
-	public void syncAllTableStatusMenu(ArrayList<Player> players) {
+	public void syncAllGameData(GameMenuData gameMenuData) {
 		// TODO break this up at the Table level - pending players will get this message
-		Logger.log(LOG_TAG,"syncAllTableStatusMenu()");
-		String msg=TAG_STATUS_MENU_UPDATE_OPEN;
-		for (Player player:players) {
-			msg=msg+TAG_PLAYER_NAME_OPEN+player.name.getText()+TAG_PLAYER_NAME_CLOSE;
-			msg=msg+TAG_AMOUNT_OPEN+player.chipAmount+TAG_AMOUNT_CLOSE;
-		}
-		msg=msg+TAG_STATUS_MENU_UPDATE_CLOSE;
+		Logger.log(LOG_TAG,"syncAllGameData()");
+		String msg=TAG_GAME_DATA_OPEN;
+		msg+=TAG_GAME_DATA_NAME_OPEN+gameMenuData.gameName+TAG_GAME_DATA_NAME_CLOSE;
+		msg+=TAG_GAME_DATA_DEAL_OPEN+gameMenuData.dealStage+TAG_GAME_DATA_DEAL_CLOSE;
+		msg+=TAG_GAME_DATA_POT_OPEN+gameMenuData.potTotal+TAG_GAME_DATA_POT_CLOSE;
+		for (PlayerMenuItem player : gameMenuData.players) {
+			msg+=TAG_GAME_DATA_PLAYER_OPEN;
+			msg+=TAG_GAME_DATA_PLAYER_NAME_OPEN+player.name+TAG_GAME_DATA_PLAYER_NAME_CLOSE;
+			msg+=TAG_GAME_DATA_PLAYER_BET_OPEN+player.betTotal+TAG_GAME_DATA_PLAYER_BET_CLOSE;
+			msg+=TAG_GAME_DATA_PLAYER_TOTAL_OPEN+player.chipTotal+TAG_GAME_DATA_PLAYER_TOTAL_CLOSE;
+			msg+=TAG_GAME_DATA_PLAYER_CLOSE;
+		}		
+		msg=msg+TAG_GAME_DATA_CLOSE;
 		hostNetworkService.sendToAll(msg);
 	}
 	
