@@ -105,7 +105,7 @@ public class PlayerNetwork implements IPlayerNetwork {
 			playerNetworkService.stopListen();
 			if (tableConnected) {
 				playerNetworkService.disconnectCurrentGame();
-				player.notifyConnectionLost();
+				notifyConnectionLost();
 			}
 			c_.unbindService(networkServiceConnection);
 			connectServiceBound=false;
