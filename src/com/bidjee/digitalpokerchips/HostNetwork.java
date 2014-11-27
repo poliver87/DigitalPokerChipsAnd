@@ -45,6 +45,8 @@ public class HostNetwork implements IHostNetwork {
 	public static final String TAG_GAME_DATA_PLAYER_BET_CLOSE = "<GAME_DATA_PLAYER_BET/>";
 	public static final String TAG_GAME_DATA_PLAYER_TOTAL_OPEN = "<GAME_DATA_PLAYER_TOTAL>";
 	public static final String TAG_GAME_DATA_PLAYER_TOTAL_CLOSE = "<GAME_DATA_PLAYER_TOTAL/>";
+	public static final String TAG_GAME_DATA_PLAYER_FOLDED_OPEN = "<GAME_DATA_PLAYER_FOLDED>";
+	public static final String TAG_GAME_DATA_PLAYER_FOLDED_CLOSE = "<GAME_DATA_PLAYER_FOLDED/>";
 	public static final String TAG_COLOR_OPEN = "<COLOR>";
 	public static final String TAG_COLOR_CLOSE = "<COLOR/>";
 	public static final String TAG_YOUR_BET_OPEN = "<YOUR_BET>";
@@ -226,6 +228,7 @@ public class HostNetwork implements IHostNetwork {
 			msg+=TAG_GAME_DATA_PLAYER_NAME_OPEN+player.name+TAG_GAME_DATA_PLAYER_NAME_CLOSE;
 			msg+=TAG_GAME_DATA_PLAYER_BET_OPEN+player.betTotal+TAG_GAME_DATA_PLAYER_BET_CLOSE;
 			msg+=TAG_GAME_DATA_PLAYER_TOTAL_OPEN+player.chipTotal+TAG_GAME_DATA_PLAYER_TOTAL_CLOSE;
+			msg+=TAG_GAME_DATA_PLAYER_FOLDED_OPEN+player.chipTotal+TAG_GAME_DATA_PLAYER_FOLDED_CLOSE;
 			msg+=TAG_GAME_DATA_PLAYER_CLOSE;
 		}		
 		msg=msg+TAG_GAME_DATA_CLOSE;
@@ -265,10 +268,10 @@ public class HostNetwork implements IHostNetwork {
 	}
 	
 	@Override
-	public void arrange() {
+	public void notifyArrange(String playerName) {
 		Logger.log(LOG_TAG,"arrange()");
 		String msg=TAG_ARRANGE;
-		hostNetworkService.sendToAll(msg);
+		hostNetworkService.sendToPlayer(msg,playerName);
 	}
 	
 	@Override

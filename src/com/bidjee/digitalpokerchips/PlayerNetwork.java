@@ -370,7 +370,10 @@ public class PlayerNetwork implements IPlayerNetwork {
 						startIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_TOTAL_OPEN) + HostNetwork.TAG_GAME_DATA_PLAYER_TOTAL_OPEN.length();
 						endIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_TOTAL_CLOSE);
 						int playerTotal = Integer.parseInt(playerInfo.substring(startIndex,endIndex));
-						playerList.add(new PlayerMenuItem(playerName, playerBet, playerTotal));
+						startIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_FOLDED_OPEN) + HostNetwork.TAG_GAME_DATA_PLAYER_FOLDED_OPEN.length();
+						endIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_FOLDED_CLOSE);
+						boolean folded = Boolean.parseBoolean(playerInfo.substring(startIndex,endIndex));
+						playerList.add(new PlayerMenuItem(playerName, playerBet, playerTotal,folded));
 					}
 					gameMenuData.set(gameName, dealStage, potTotal, playerList);
 					player.syncGameData(gameMenuData);
