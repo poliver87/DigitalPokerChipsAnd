@@ -16,9 +16,10 @@ import com.bidjee.digitalpokerchips.i.IPlayerNetwork;
 import com.bidjee.digitalpokerchips.m.ChipCase;
 import com.bidjee.digitalpokerchips.m.ChipStack;
 import com.bidjee.digitalpokerchips.m.DiscoveredTable;
+import com.bidjee.digitalpokerchips.m.GameMenuData;
 import com.bidjee.digitalpokerchips.m.Move;
 import com.bidjee.digitalpokerchips.m.MovePrompt;
-import com.bidjee.digitalpokerchips.m.PlayerEntry;
+import com.bidjee.digitalpokerchips.m.PlayerMenuItem;
 import com.bidjee.util.Logger;
 
 public class PlayerNetwork implements IPlayerNetwork {
@@ -335,26 +336,43 @@ public class PlayerNetwork implements IPlayerNetwork {
 					player.setColor(color);
 				}
 			});
-		} else if (msg.contains(HostNetwork.TAG_STATUS_MENU_UPDATE_OPEN)&&msg.contains(HostNetwork.TAG_STATUS_MENU_UPDATE_CLOSE)) {
-			int startMsg = msg.indexOf(HostNetwork.TAG_STATUS_MENU_UPDATE_OPEN) + HostNetwork.TAG_STATUS_MENU_UPDATE_OPEN.length();
-			int endMsg = msg.indexOf(HostNetwork.TAG_STATUS_MENU_UPDATE_CLOSE);
-			final String statusMenuMsg = msg.substring(startMsg,endMsg);			
+		} else if (msg.contains(HostNetwork.TAG_GAME_DATA_OPEN)&&msg.contains(HostNetwork.TAG_GAME_DATA_CLOSE)) {
+			int startMsg = msg.indexOf(HostNetwork.TAG_GAME_DATA_OPEN) + HostNetwork.TAG_GAME_DATA_OPEN.length();
+			int endMsg = msg.indexOf(HostNetwork.TAG_GAME_DATA_CLOSE);
+			final String statusMenuMsg = msg.substring(startMsg,endMsg);
 			Gdx.app.postRunnable(new Runnable() {
 				@Override
 				public void run() {
-					ArrayList<PlayerEntry> playerList=new ArrayList<PlayerEntry>();
+					GameMenuData gameMenuData = new GameMenuData();
+					int startIndex = statusMenuMsg.indexOf(HostNetwork.TAG_GAME_DATA_NAME_OPEN) + HostNetwork.TAG_GAME_DATA_NAME_OPEN.length();
+					int endIndex = statusMenuMsg.indexOf(HostNetwork.TAG_GAME_DATA_NAME_CLOSE);
+					String gameName=statusMenuMsg.substring(startIndex,endIndex);
+					startIndex = statusMenuMsg.indexOf(HostNetwork.TAG_GAME_DATA_DEAL_OPEN) + HostNetwork.TAG_GAME_DATA_DEAL_OPEN.length();
+					endIndex = statusMenuMsg.indexOf(HostNetwork.TAG_GAME_DATA_DEAL_CLOSE);
+					int dealStage=Integer.parseInt(statusMenuMsg.substring(startIndex,endIndex));
+					startIndex = statusMenuMsg.indexOf(HostNetwork.TAG_GAME_DATA_POT_OPEN) + HostNetwork.TAG_GAME_DATA_POT_OPEN.length();
+					endIndex = statusMenuMsg.indexOf(HostNetwork.TAG_GAME_DATA_POT_CLOSE);
+					int potTotal=Integer.parseInt(statusMenuMsg.substring(startIndex,endIndex));
+					ArrayList<PlayerMenuItem> playerList=new ArrayList<PlayerMenuItem>();
 					String buffer=statusMenuMsg;
-					while (buffer.contains(HostNetwork.TAG_PLAYER_NAME_OPEN)&&buffer.contains(HostNetwork.TAG_AMOUNT_CLOSE)) {
-						int startIndex = buffer.indexOf(HostNetwork.TAG_PLAYER_NAME_OPEN) + HostNetwork.TAG_PLAYER_NAME_OPEN.length();
-						int endIndex = buffer.indexOf(HostNetwork.TAG_PLAYER_NAME_CLOSE);
-						String playerName = buffer.substring(startIndex,endIndex);
-						startIndex = buffer.indexOf(HostNetwork.TAG_AMOUNT_OPEN) + HostNetwork.TAG_AMOUNT_OPEN.length();
-						endIndex = buffer.indexOf(HostNetwork.TAG_AMOUNT_CLOSE);
-						int amount = Integer.parseInt(buffer.substring(startIndex, endIndex));
-						playerList.add(new PlayerEntry(playerName,amount));
-						buffer=buffer.substring(endIndex+HostNetwork.TAG_AMOUNT_CLOSE.length());
+					while (buffer.contains(HostNetwork.TAG_GAME_DATA_PLAYER_OPEN)&&buffer.contains(HostNetwork.TAG_GAME_DATA_PLAYER_CLOSE)) {
+						startIndex = buffer.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_OPEN) + HostNetwork.TAG_GAME_DATA_PLAYER_OPEN.length();
+						endIndex = buffer.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_CLOSE);
+						String playerInfo = buffer.substring(startIndex,endIndex);
+						buffer=buffer.substring(endIndex+HostNetwork.TAG_GAME_DATA_PLAYER_CLOSE.length());
+						startIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_NAME_OPEN) + HostNetwork.TAG_GAME_DATA_PLAYER_NAME_OPEN.length();
+						endIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_NAME_CLOSE);
+						String playerName = playerInfo.substring(startIndex,endIndex);
+						startIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_BET_OPEN) + HostNetwork.TAG_GAME_DATA_PLAYER_BET_OPEN.length();
+						endIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_BET_CLOSE);
+						int playerBet = Integer.parseInt(playerInfo.substring(startIndex,endIndex));
+						startIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_TOTAL_OPEN) + HostNetwork.TAG_GAME_DATA_PLAYER_TOTAL_OPEN.length();
+						endIndex = playerInfo.indexOf(HostNetwork.TAG_GAME_DATA_PLAYER_TOTAL_CLOSE);
+						int playerTotal = Integer.parseInt(playerInfo.substring(startIndex,endIndex));
+						playerList.add(new PlayerMenuItem(playerName, playerBet, playerTotal));
 					}
-					player.syncStatusMenu(playerList);
+					gameMenuData.set(gameName, dealStage, potTotal, playerList);
+					player.syncGameData(gameMenuData);
 				}
 			});
 		} else if (msg.contains(HostNetwork.TAG_WAIT_NEXT_HAND)) {
