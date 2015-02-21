@@ -257,9 +257,9 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 	
 	/////////////// Table Store Methods ///////////////
     @Override
-	public void saveGame(final int saveSlot,final String tableName,String tableState,String gameState) {
+	public void saveGame(final String tableName,String tableState,String gameState) {
     	Logger.log(LOG_TAG,"saveGame()");
-		Editor savedGameEditor=getSharedPreferences("SAVED_GAME_"+saveSlot,Activity.MODE_PRIVATE).edit();
+		Editor savedGameEditor=getSharedPreferences("SAVED_GAME_"+tableName,Activity.MODE_PRIVATE).edit();
 		savedGameEditor.putString(SAVE_TABLE_NAME_KEY,tableName);
 		savedGameEditor.putString(SAVE_TABLE_STATE_KEY,tableState);
 		savedGameEditor.putString(SAVE_GAME_STATE_KEY,gameState);
@@ -267,8 +267,8 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
     	final AndroidApplication activity=this;
     	this.runOnUiThread(new Runnable() {
     		public void run() {
-    			Toast toast=Toast.makeText(activity,tableName+" AutoSaved to slot "+saveSlot,Toast.LENGTH_SHORT);
-            	toast.setGravity(Gravity.BOTTOM,0,0);
+    			Toast toast=Toast.makeText(activity,tableName+" Auto-Saved",Toast.LENGTH_SHORT);
+            	toast.setGravity(Gravity.BOTTOM,0,5);
             	toast.show();
     		}
     	});
@@ -483,7 +483,7 @@ public class DPCActivity extends AndroidApplication implements IActivity, ITable
 					GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,bitmapFinal,0);
 					GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,0);
 					bitmapFinal.recycle();
-					game.mWL.thisPlayer.playerLoginDone(users[0].getFirstName(), tex);
+					game.mWL.thisPlayer.playerLoginComplete(users[0].getFirstName(), tex);
 				}
 			});
 			return null;
